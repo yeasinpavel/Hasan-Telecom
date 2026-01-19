@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HASAN TELECOM - Vault</title>
+<title>HASAN TELECOM Vault</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2563eb">
 
@@ -11,12 +11,50 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config={darkMode:'class'}</script>
 
-<!-- Firebase -->
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+input::placeholder { color:#64748b; }
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 flex flex-col items-center gap-6">
+
+<!-- HEADER -->
+<div class="w-full max-w-xl bg-white dark:bg-slate-900 border rounded-[32px] p-8 flex flex-col items-center shadow-xl text-center">
+  <h1 class="text-3xl font-black text-blue-600 dark:text-blue-500 uppercase mb-1">HASAN TELECOM</h1>
+  <p id="modeIndicator" class="text-xs text-slate-400 uppercase mb-6">STAFF VIEW MODE</p>
+  <div class="flex items-center gap-4">
+    <button onclick="toggleTheme()" class="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800">
+      <span id="themeIcon">🌙</span>
+    </button>
+    <button id="adminBtn" onclick="toggleAdmin()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-sm tracking-widest">LOGIN</button>
+    <div id="adminTools" class="hidden flex gap-2">
+      <button onclick="generatePDF()" class="bg-orange-600 p-4 rounded-2xl text-white">📄</button>
+      <button onclick="logout()" class="bg-red-600 p-4 rounded-2xl text-white">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div class="w-full max-w-xl bg-white dark:bg-slate-900/50 border rounded-[32px] p-6 mt-4 shadow-xl">
+  <div class="relative">
+    <input type="text" id="searchInput" onkeyup="render()" placeholder="Search inventory..." class="w-full bg-slate-100 dark:bg-slate-950 border p-4 rounded-2xl text-slate-900 dark:text-slate-300 focus:ring-2 focus:ring-blue-500">
+  </div>
+</div>
+
+<!-- VAULT CONTENT -->
+<div id="vaultContent" class="w-full max-w-xl space-y-3 mt-4"></div>
+<div id="emptyState" class="hidden p-20 text-center text-slate-400 italic text-xs">No items found</div>
+
+<!-- FIREBASE & APP LOGIC -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-// Firebase config – FIXED storageBucket
+// ---------- FIREBASE CONFIG ----------
 const firebaseConfig = {
   apiKey: "AIzaSyD2_M0SwhaQ90wuEVBdDP91zBc2GDWKglQ",
   authDomain: "hasan-telecom-ad91e.firebaseapp.com",
@@ -26,181 +64,136 @@ const firebaseConfig = {
   messagingSenderId: "199331841561",
   appId: "1:199331841561:web:3e2ef8bdb21f222ee5cc88"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-</script>
 
-<!-- jsPDF for PDF Export -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+// ---------- APP STATE ----------
+const ADMIN_PASSWORD = "511436";
+let isAdmin = false;
+let data = [];
 
-<style>
-body { font-family: 'Inter', sans-serif; background-color:#0f172a; }
-.group-header:hover { cursor:pointer; background-color: rgba(59,130,246,0.05);}
-input::placeholder{ color:#64748b;}
-</style>
-</head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen p-4 md:p-8 flex flex-col items-center gap-6 transition-colors duration-300">
-
-<!-- Header -->
-<div class="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] p-8 flex flex-col items-center text-center shadow-2xl">
-  <h1 class="text-3xl font-black text-blue-600 dark:text-blue-500 tracking-tighter uppercase mb-1">HASAN TELECOM</h1>
-  <p id="modeIndicator" class="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase mb-6">STAFF VIEW MODE</p>
-
-  <div class="flex items-center gap-4">
-    <button onclick="toggleTheme()" class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl hover:scale-105 transition">
-      <span id="themeIcon" class="text-xl">🌙</span>
-    </button>
-    <button id="adminBtn" onclick="toggleAdmin()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-sm tracking-widest shadow-lg shadow-blue-900/40 hover:bg-blue-500 transition">LOGIN</button>
-    <div id="adminTools" class="hidden flex gap-2">
-      <button onclick="generatePDF()" title="Export PDF" class="bg-orange-600 p-4 rounded-2xl text-white shadow-lg hover:bg-orange-500 transition">📄</button>
-      <button onclick="logout()" title="Logout" class="bg-red-600 p-4 rounded-2xl text-white shadow-lg hover:bg-red-500 transition">✕</button>
-    </div>
-  </div>
-</div>
-
-<!-- Stats Panel -->
-<div id="statsPanel" class="hidden w-full max-w-xl grid grid-cols-3 gap-3 animate-fade-in">
-  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
-    <p class="text-[10px] text-slate-400 font-bold uppercase">Total Items</p>
-    <p id="statTotal" class="text-xl font-black text-blue-500">0</p>
-  </div>
-  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
-    <p class="text-[10px] text-slate-400 font-bold uppercase">Out of Stock</p>
-    <p id="statLow" class="text-xl font-black text-red-500">0</p>
-  </div>
-  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
-    <p class="text-[10px] text-slate-400 font-bold uppercase">Brands</p>
-    <p id="statBrands" class="text-xl font-black text-emerald-500">0</p>
-  </div>
-</div>
-
-<!-- Search & Filter -->
-<div class="w-full max-w-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[32px] p-6 space-y-4 shadow-xl">
-  <div class="relative">
-    <input type="text" id="searchInput" onkeyup="render()" placeholder="Search (e.g. 'Logic Board' or 'S21')" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 p-5 rounded-2xl text-slate-900 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 transition">
-    <span class="absolute right-5 top-5 opacity-20">🔍</span>
-  </div>
-</div>
-
-<!-- Vault Content -->
-<div id="vaultContent" class="w-full max-w-xl space-y-3"></div>
-<div id="emptyState" class="hidden p-20 text-center text-slate-400 font-bold uppercase text-xs italic">No items found matching your filter</div>
-
-<script type="module">
-  import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
-
-  const ADMIN_PASSWORD = "511436";
-  let data = [];
-  let isAdmin = false;
-
-  // THEME
-  function toggleTheme(){
-    const dark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', dark?'dark':'light');
-    document.getElementById('themeIcon').innerText = dark?'☀️':'🌙';
+// ---------- THEME ----------
+function applyTheme(theme) {
+  if(theme === 'dark') {
+    document.documentElement.classList.add('dark');
+    document.getElementById('themeIcon').innerText = '☀️';
+  } else {
+    document.documentElement.classList.remove('dark');
+    document.getElementById('themeIcon').innerText = '🌙';
   }
-  if(localStorage.theme==='light'){ document.documentElement.classList.remove('dark'); document.getElementById('themeIcon').innerText='🌙'; }
+  localStorage.setItem('theme', theme);
+}
 
-  // ADMIN LOGIN
-  function toggleAdmin(){
-    const key = prompt("Admin Key:");
-    if(key===ADMIN_PASSWORD){ isAdmin=true; updateUI(); }
+function toggleTheme() {
+  const current = localStorage.getItem('theme') || 'dark';
+  applyTheme(current==='dark'?'light':'dark');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  applyTheme(savedTheme);
+});
+
+// ---------- ADMIN LOGIN ----------
+function toggleAdmin() {
+  const key = prompt("Enter Admin Password:");
+  if(key === ADMIN_PASSWORD) {
+    isAdmin = true;
+    alert("Admin login successful!");
+  } else {
+    alert("Incorrect password!");
+    isAdmin = false;
   }
-  function logout(){ isAdmin=false; updateUI(); }
+  updateUI();
+}
 
-  function updateUI(){
-    document.getElementById('adminTools').classList.toggle('hidden', !isAdmin);
-    document.getElementById('statsPanel').classList.toggle('hidden', !isAdmin);
-    document.getElementById('adminBtn').classList.toggle('hidden', isAdmin);
-    document.getElementById('modeIndicator').innerText = isAdmin?"ADMIN AUTHORIZED":"STAFF VIEW MODE";
+function logout() {
+  isAdmin = false;
+  updateUI();
+}
+
+function updateUI() {
+  document.getElementById('adminTools').classList.toggle('hidden', !isAdmin);
+  document.getElementById('adminBtn').classList.toggle('hidden', isAdmin);
+  document.getElementById('modeIndicator').innerText = isAdmin?"ADMIN AUTHORIZED":"STAFF VIEW MODE";
+  render();
+}
+
+// ---------- FIREBASE FUNCTIONS ----------
+function loadInventory() {
+  const dbRef = ref(db, 'inventory');
+  onValue(dbRef, snapshot => {
+    const val = snapshot.val();
+    data = val ? Object.values(val) : [];
     render();
+  });
+}
+
+function saveItem(item) {
+  if(!item.id) item.id = Date.now().toString(); // ensure unique id
+  set(ref(db, 'inventory/' + item.id), item);
+}
+
+function deleteItem(id) {
+  if(confirm("Delete this item?")) {
+    remove(ref(db, 'inventory/' + id));
+  }
+}
+
+// ---------- RENDER ----------
+function render() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const container = document.getElementById('vaultContent');
+  const filtered = data.filter(i => `${i.brand} ${i.name} ${i.cat || ''}`.toLowerCase().includes(search));
+
+  container.innerHTML = '';
+  if(filtered.length === 0){ 
+    document.getElementById('emptyState').classList.remove('hidden'); 
+    return;
+  } else { 
+    document.getElementById('emptyState').classList.add('hidden'); 
   }
 
-  // FIREBASE
-  const db = getDatabase();
-
-  function loadInventory(){
-    const dbRef = ref(db, 'inventory');
-    onValue(dbRef, snapshot=>{
-      const val = snapshot.val();
-      data = val ? Object.values(val) : [];
-      render();
-    });
-  }
-
-  function saveItem(item){
-    if(!item.id) item.id = Date.now().toString();
-    set(ref(db, 'inventory/' + item.id), item);
-  }
-
-  function deleteItem(id){
-    if(confirm("Delete this item?")){
-      remove(ref(db,'inventory/'+id));
-    }
-  }
-
-  // PDF EXPORT
-  function generatePDF(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFontSize(20);
-    doc.text("HASAN TELECOM - INVENTORY REPORT", 14,20);
-    const tableRows = data.map(i=>[i.brand,i.name,i.cat,i.inStock?"YES":"NO",i.price||"Contact"]);
-    doc.autoTable({
-      startY:30,
-      head:[['Brand','Model','Category','Available','Price']],
-      body:tableRows
-    });
-    doc.save('HasanTelecom_Report.pdf');
-  }
-
-  // RENDER
-  function render(){
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    const container = document.getElementById('vaultContent');
-    const filtered = data.filter(i=>{
-      return `${i.brand} ${i.name} ${i.cat}`.toLowerCase().includes(search);
-    });
-
-    container.innerHTML='';
-    filtered.forEach(item=>{
-      container.innerHTML+=`
-      <div class="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div class="p-5 flex justify-between items-center">
-          <div>
-            <span class="text-[9px] font-black text-orange-500 uppercase tracking-widest bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded-lg">${item.brand}</span>
-            <h3 class="text-lg font-bold dark:text-white mt-1">${item.name}</h3>
-          </div>
-          <span class="opacity-30">▼</span>
+  filtered.forEach(item => {
+    container.innerHTML += `
+    <div class="bg-white dark:bg-slate-900 rounded-[24px] border p-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <span class="font-bold">${item.brand}</span> - ${item.name} 
         </div>
-        <div class="border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4 flex justify-between items-center">
-          <div class="text-xs font-bold">${item.cat}</div>
-          <div class="cursor-pointer" onclick="item.inStock=!item.inStock; saveItem(item); render();">
-            ${item.inStock?'<span class="text-emerald-500">🟢 IN STOCK</span>':'<span class="text-red-500">🔴 OUT</span>'}
-          </div>
-          <div class="font-mono font-bold text-blue-600 dark:text-blue-400">${item.price||"Contact"}</div>
-          ${isAdmin?`<button class="text-red-500 font-bold hover:text-red-700" onclick="deleteItem('${item.id}')">✕</button>`:''}
+        <div class="cursor-pointer" onclick="item.inStock=!item.inStock; saveItem(item); render();">
+          ${item.inStock?'<span class="text-green-500">IN STOCK</span>':'<span class="text-red-500">OUT</span>'}
         </div>
-      </div>`;
-    });
+        ${isAdmin?`<button class="text-red-500" onclick="deleteItem('${item.id}')">✕</button>`:''}
+      </div>
+    </div>`;
+  });
+}
 
-    document.getElementById('emptyState').classList.toggle('hidden', filtered.length>0);
+// ---------- PDF EXPORT ----------
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(20);
+  doc.text("HASAN TELECOM - INVENTORY REPORT",14,20);
+  const rows = data.map(i => [i.brand, i.name, i.cat||'', i.inStock?"YES":"NO", i.price||"Contact"]);
+  doc.autoTable({startY:30, head:[['Brand','Model','Category','Available','Price']], body:rows});
+  doc.save('HasanTelecom_Report.pdf');
+}
 
-    if(isAdmin){
-      document.getElementById('statTotal').innerText=data.length;
-      document.getElementById('statLow').innerText=data.filter(i=>!i.inStock).length;
-      document.getElementById('statBrands').innerText=new Set(data.map(i=>i.brand)).size;
-    }
-  }
-
-  loadInventory();
-
-  // SERVICE WORKER REGISTRATION
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').then(()=>console.log("SW Registered")).catch(console.error);
-  }
+// ---------- INIT ----------
+loadInventory();
 </script>
+
+<!-- ---------- SERVICE WORKER ----------
+Ensure offline caching ---------- -->
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js')
+    .then(()=>console.log("Service Worker Registered"))
+    .catch(err=>console.error(err));
+}
+</script>
+
 </body>
 </html>
