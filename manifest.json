@@ -1,11 +1,12 @@
 {
   "name": "HASAN TELECOM Vault",
   "short_name": "HT Vault",
+  "description": "Inventory management app for Hasan Telecom",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
-  "description": "Inventory management for Hasan Telecom",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icon-192.png",
