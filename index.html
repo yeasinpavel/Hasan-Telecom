@@ -14,18 +14,19 @@
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-// Firebase config
+// Firebase config – FIXED storageBucket
 const firebaseConfig = {
   apiKey: "AIzaSyD2_M0SwhaQ90wuEVBdDP91zBc2GDWKglQ",
   authDomain: "hasan-telecom-ad91e.firebaseapp.com",
   databaseURL: "https://hasan-telecom-ad91e-default-rtdb.firebaseio.com",
   projectId: "hasan-telecom-ad91e",
-  storageBucket: "hasan-telecom-ad91e.firebasestorage.app.appspot.com",
+  storageBucket: "hasan-telecom-ad91e.appspot.com",
   messagingSenderId: "199331841561",
   appId: "1:199331841561:web:3e2ef8bdb21f222ee5cc88"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 </script>
@@ -88,11 +89,11 @@ input::placeholder{ color:#64748b;}
 <div id="emptyState" class="hidden p-20 text-center text-slate-400 font-bold uppercase text-xs italic">No items found matching your filter</div>
 
 <script type="module">
-  // Basic Config
+  import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
   const ADMIN_PASSWORD = "511436";
-  let data = []; 
+  let data = [];
   let isAdmin = false;
-  let expandedModels = new Set();
 
   // THEME
   function toggleTheme(){
@@ -110,7 +111,6 @@ input::placeholder{ color:#64748b;}
   function logout(){ isAdmin=false; updateUI(); }
 
   function updateUI(){
-    document.getElementById('adminPanel')?.classList?.toggle('hidden', !isAdmin);
     document.getElementById('adminTools').classList.toggle('hidden', !isAdmin);
     document.getElementById('statsPanel').classList.toggle('hidden', !isAdmin);
     document.getElementById('adminBtn').classList.toggle('hidden', isAdmin);
@@ -118,31 +118,30 @@ input::placeholder{ color:#64748b;}
     render();
   }
 
-  // FIREBASE FUNCTIONS
-  import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
-  const database = getDatabase();
+  // FIREBASE
+  const db = getDatabase();
 
-  // Load inventory from Firebase
   function loadInventory(){
-    const dbRef = ref(database, 'inventory');
-    onValue(dbRef, (snapshot)=>{
+    const dbRef = ref(db, 'inventory');
+    onValue(dbRef, snapshot=>{
       const val = snapshot.val();
-      data = val?Object.values(val):[];
+      data = val ? Object.values(val) : [];
       render();
     });
   }
 
   function saveItem(item){
-    set(ref(database, 'inventory/'+item.id), item);
+    if(!item.id) item.id = Date.now().toString();
+    set(ref(db, 'inventory/' + item.id), item);
   }
 
   function deleteItem(id){
     if(confirm("Delete this item?")){
-      remove(ref(database,'inventory/'+id));
+      remove(ref(db,'inventory/'+id));
     }
   }
 
-  // PDF Export
+  // PDF EXPORT
   function generatePDF(){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -197,6 +196,11 @@ input::placeholder{ color:#64748b;}
   }
 
   loadInventory();
+
+  // SERVICE WORKER REGISTRATION
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').then(()=>console.log("SW Registered")).catch(console.error);
+  }
 </script>
 </body>
 </html>
