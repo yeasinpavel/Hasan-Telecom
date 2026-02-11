@@ -35,7 +35,12 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
             <span id="themeIcon" class="text-xl">🌙</span>
         </button>
         <button id="adminBtn" onclick="toggleAdmin()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-sm tracking-widest shadow-lg hover:bg-blue-500 transition">LOGIN</button>
-        <div id="adminTools" class="hidden flex gap-2"> <button onclick="exportExcel()" title="Export Excel" class="bg-orange-600 p-4 rounded-2xl text-white shadow-lg">📊</button> <button onclick="downloadBackup()" title="Backup" class="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg">💾</button> <button onclick="toggleSelectMode()" title="Select & Delete Mode" class="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg">☑️</button> <!-- ADD THIS BUTTON --> <button onclick="deleteSelected()" title="Delete Selected" class="bg-red-700 p-4 rounded-2xl text-white shadow-lg">🗑️</button> <button onclick="logout()" title="Logout" class="bg-red-600 p-4 rounded-2xl text-white shadow-lg">✕</button> 
+        <div id="adminTools" class="hidden flex gap-2"> 
+            <button onclick="exportExcel()" title="Export Excel" class="bg-orange-600 p-4 rounded-2xl text-white shadow-lg">📊</button> 
+            <button onclick="downloadBackup()" title="Backup" class="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg">💾</button> 
+            <button onclick="toggleSelectMode()" title="Select & Delete Mode" class="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg">☑️</button> 
+            <button onclick="deleteSelected()" title="Delete Selected" class="bg-red-700 p-4 rounded-2xl text-white shadow-lg">🗑️</button> 
+            <button onclick="logout()" title="Logout" class="bg-red-600 p-4 rounded-2xl text-white shadow-lg">✕</button> 
       </div>
     </div>
 </div>
@@ -259,7 +264,23 @@ function deleteItem(id){ if(confirm("Delete?")){ data=data.filter(x=>x.id!==id);
 function save(){ localStorage.setItem('ht_vault_v2', JSON.stringify(data)); render(); }
 
 function exportExcel(){
-    const rows=lastFiltered.map(i=>({Brand:i.brand, Model:i.name, Category:i.cat, Stock:i.inStock?"YES":"NO", Price:i.price}));
+    // Sort by Brand first, then Model
+    const sortedData = [...lastFiltered].sort((a, b) => {
+        if(a.brand < b.brand) return -1;
+        if(a.brand > b.brand) return 1;
+        if(a.name < b.name) return -1;
+        if(a.name > b.name) return 1;
+        return 0;
+    });
+
+    const rows = sortedData.map(i=>({
+        Brand: i.brand,
+        Model: i.name,
+        Category: i.cat,
+        Stock: i.inStock?"YES":"NO",
+        Price: i.price
+    }));
+
     const ws=XLSX.utils.json_to_sheet(rows);
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Inventory");
@@ -271,7 +292,6 @@ function importBackup(e){ const r=new FileReader(); r.onload=()=>{ data=JSON.par
 
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js'); }); }
 
-// ===== Scroll-to-collapse after 200px =====
 let lastScrollWindow = window.scrollY || 0;
 let lastScrollVault = vaultContent.scrollTop || 0;
 const collapseThreshold = 200;
@@ -284,7 +304,6 @@ window.addEventListener('scroll', () => {
         lastScrollWindow = currentScroll;
     }
 });
-
 vaultContent.addEventListener('scroll', () => {
     const currentScroll = vaultContent.scrollTop || 0;
     if (expandedModels.size > 0 && Math.abs(currentScroll - lastScrollVault) >= collapseThreshold) {
@@ -294,7 +313,7 @@ vaultContent.addEventListener('scroll', () => {
     }
 });
 
-render();
+updateUI();
 </script>
 </body>
 </html>
