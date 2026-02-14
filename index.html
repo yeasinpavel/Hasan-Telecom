@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HASAN TELECOM - Pro Vault v2.3</title>
+<title>HASAN TELECOM - Pro Vault v2.6</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="logo.png">
@@ -23,9 +23,34 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
 .sticky-bar { position: sticky; top: 0; z-index: 20; }
+/* Subtle animation for modal */
+.modal-animate { animation: fadeIn 0.2s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen p-4 md:p-8 flex flex-col items-center gap-6 transition-colors duration-300">
+
+<div id="actionModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate">
+        <h4 id="modalTitle" class="text-center text-xs font-black tracking-widest text-slate-400 uppercase mb-4">Edit Value</h4>
+        <input type="text" id="modalInput" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl mb-6 outline-none border-2 border-transparent focus:border-blue-500 dark:text-white font-bold text-center">
+        <div class="flex flex-col gap-3">
+            <button onclick="confirmModalAction()" class="w-full py-4 rounded-2xl bg-blue-600 text-white font-black uppercase tracking-widest shadow-lg">Confirm</button>
+            <button onclick="closeActionModal()" class="w-full py-2 text-slate-500 font-bold text-[10px] uppercase">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="colorPickerModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate">
+        <h4 class="text-center text-xs font-black tracking-widest text-slate-400 uppercase mb-6">Price Visibility</h4>
+        <div class="flex flex-col gap-4">
+            <button onclick="setPriceColor('blue')" class="w-full py-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-tighter shadow-lg shadow-blue-500/20">Visible (Blue)</button>
+            <button onclick="setPriceColor('green')" class="w-full py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-tighter shadow-lg shadow-emerald-500/20">Hidden (Green)</button>
+            <button onclick="closeColorPicker()" class="w-full py-3 text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Cancel</button>
+        </div>
+    </div>
+</div>
 
 <div class="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] p-8 flex flex-col items-center text-center shadow-2xl">
     <h1 class="text-3xl font-black text-blue-600 dark:text-blue-500 tracking-tighter uppercase mb-1">HASAN TELECOM</h1>
@@ -36,10 +61,10 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
         </button>
         <button id="adminBtn" onclick="toggleAdmin()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-sm tracking-widest shadow-lg hover:bg-blue-500 transition">LOGIN</button>
         <div id="adminTools" class="hidden flex gap-2"> 
-            <button onclick="exportExcel()" title="Export Excel" class="bg-orange-600 p-4 rounded-2xl text-white shadow-lg">📊</button> 
+            <button onclick="exportExcel()" title="Export" class="bg-orange-600 p-4 rounded-2xl text-white shadow-lg">📊</button> 
             <button onclick="downloadBackup()" title="Backup" class="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg">💾</button> 
-            <button onclick="toggleSelectMode()" title="Select & Delete Mode" class="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg">☑️</button> 
-            <button onclick="deleteSelected()" title="Delete Selected" class="bg-red-700 p-4 rounded-2xl text-white shadow-lg">🗑️</button> 
+            <button onclick="toggleSelectMode()" title="Select" class="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg">☑️</button> 
+            <button onclick="deleteSelected()" title="Delete" class="bg-red-700 p-4 rounded-2xl text-white shadow-lg">🗑️</button> 
             <button onclick="logout()" title="Logout" class="bg-red-600 p-4 rounded-2xl text-white shadow-lg">✕</button> 
       </div>
     </div>
@@ -51,7 +76,7 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
         <p id="statTotal" class="text-xl font-black text-blue-500">0</p>
     </div>
     <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
-        <p class="text-[10px] text-slate-400 font-bold uppercase">Out of stock</p>
+        <p class="text-[10px] text-slate-400 font-bold uppercase">Out Stock</p>
         <p id="statLow" class="text-xl font-black text-red-500">0</p>
     </div>
     <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
@@ -65,7 +90,7 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
         <select id="modelBrand" class="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl outline-none font-bold dark:text-white"></select>
         <select id="modelCategory" class="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl outline-none font-bold dark:text-white"></select>
     </div>
-    <textarea id="bulkInput" rows="3" placeholder="Model, Price" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl outline-none font-mono text-sm dark:text-white"></textarea>
+    <textarea id="bulkInput" rows="3" placeholder="Model, Price (Multiple lines OK)" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl outline-none font-mono text-sm dark:text-white"></textarea>
     <div class="grid grid-cols-2 gap-4">
         <button onclick="addOrUpdate()" class="bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest">SAVE</button>
         <label class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white py-4 rounded-2xl font-black uppercase text-center cursor-pointer text-xs flex items-center justify-center">
@@ -75,9 +100,8 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 </div>
 
 <div class="sticky-bar w-full max-w-xl bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-200 dark:border-slate-800 space-y-2 shadow-xl">
-    <input type="text" id="searchInput" oninput="debouncedRender()" placeholder="Search..." class="w-full bg-slate-100 dark:bg-slate-950 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+    <input type="text" id="searchInput" oninput="debouncedRender()" placeholder="Search Model or Category..." class="w-full bg-slate-100 dark:bg-slate-950 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white font-bold">
     <select id="filterBrand" onchange="render()" class="w-full bg-slate-100 dark:bg-slate-800 p-5 rounded-2xl font-black text-orange-600 dark:text-orange-500"></select>
-    <p id="resultCount" class="w-full text-xs text-slate-400 font-bold text-center hidden"></p>
 </div>
 
 <div id="vaultContent" class="w-full max-w-xl space-y-3 pb-20"></div>
@@ -86,18 +110,36 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 <script>
 const ADMIN_KEY_ENCODED = "NTExNDM2";
 const BRANDS = ["SAMSUNG","XIAOMI","OPPO","VIVO","REALME","IPHONE","HUAWEI","ONEPLUS","ITEL","TECNO","INFINIX","GOOGLE PIXEL","SYMPHONY","NOKIA","MOTOROLA","NOTHING PHONE"];
-const CATEGORIES = ["Logic Board","Front Camera","Main Flex","LCD Flex","Finger Sensor","Ringer Box","Ear Speaker","Sim Tray","Power Flex","Volume Flex","Rubber switch","Camera Glass","Speaker Net","Middle Frame","Housing","Back Part"];
+const CATEGORIES = ["Logic Board","Logic Board(IC)","Front Camera","Main Flex","LCD Flex","Finger Sensor","Ringer Box","Ear Speaker","Sim Tray","Power Flex","Volume Flex","Rubber switch","Camera Glass","Speaker Net","Network Flex","SIM Flex","Flashlight Sensor","Middle Frame","Housing","Back Part"];
 
 let data = JSON.parse(localStorage.getItem('ht_vault_v2')) || [];
+data.forEach(i => { if(!i.color) i.color='blue'; }); 
+
 let isAdmin = false;
 let selectMode = false;
 let selectedItems = new Set();
 let expandedModels = new Set();
 let searchTimer;
-let lastFiltered = [];
+let lastScrollPos = 0;
 
-const toTitleCase = s =>
-    s.toLowerCase().split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+// Modal tracking
+let modalCallback = null;
+
+const toTitleCase = s => s.toLowerCase().split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+
+// MODAL UTILS
+function openActionModal(title, defaultValue, callback) {
+    modalTitle.textContent = title;
+    modalInput.value = defaultValue;
+    modalCallback = callback;
+    actionModal.classList.remove('hidden');
+    modalInput.focus();
+}
+function closeActionModal() { actionModal.classList.add('hidden'); modalCallback = null; }
+function confirmModalAction() {
+    if(modalCallback) modalCallback(modalInput.value);
+    closeActionModal();
+}
 
 function toggleTheme(){
     const d = document.documentElement.classList.toggle('dark');
@@ -108,10 +150,7 @@ if(localStorage.theme === 'light') document.documentElement.classList.remove('da
 
 function toggleAdmin(){
     const p = prompt("Key:");
-    if(p && btoa(p) === ADMIN_KEY_ENCODED){
-        isAdmin = true;
-        updateUI();
-    }
+    if(p && btoa(p) === ADMIN_KEY_ENCODED){ isAdmin = true; updateUI(); }
 }
 function logout(){ isAdmin = false; selectMode=false; selectedItems.clear(); updateUI(); }
 
@@ -124,39 +163,33 @@ function updateUI(){
     render();
 }
 
-function toggleSelectMode(){
-    selectMode = !selectMode;
-    selectedItems.clear();
+function save(){ localStorage.setItem('ht_vault_v2', JSON.stringify(data)); render(); }
+
+function addLongPress(el, callback) {
+    let timer;
+    const start = (e) => { timer = setTimeout(() => callback(e), 600); };
+    const cancel = () => clearTimeout(timer);
+    el.addEventListener('mousedown', start);
+    el.addEventListener('touchstart', start, {passive: true});
+    ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(ev => { el.addEventListener(ev, cancel); });
+}
+
+function openColorPicker(id) {
+    if(!isAdmin) return;
+    currentEditingId = id;
+    colorPickerModal.classList.remove('hidden');
+}
+function closeColorPicker() { colorPickerModal.classList.add('hidden'); }
+function setPriceColor(color) {
+    const item = data.find(i => i.id === currentEditingId);
+    if(item) { item.color = color; save(); }
+    closeColorPicker();
+}
+
+function toggleModel(key){
+    if(expandedModels.has(key)) expandedModels.delete(key);
+    else { expandedModels.add(key); lastScrollPos = window.scrollY; }
     render();
-}
-
-function addOrUpdate(){
-    const bulk = bulkInput.value;
-    const brand = modelBrand.value;
-    const cat = modelCategory.value;
-
-    bulk.split('\n').forEach(line=>{
-        if(!line.trim()) return;
-        let [rawName, price="Contact"] = line.split(',').map(s=>s.trim());
-        const displayName = toTitleCase(rawName);
-        const normalized = rawName.trim().toLowerCase();
-        const existing = data.find(i =>
-            i.brand===brand && i.cat===cat && i.name.toLowerCase()===normalized
-        );
-        if(existing){
-            existing.price = price;
-            existing.name = displayName;
-        } else {
-            data.push({id:Date.now()+Math.random(), name:displayName, price, cat, brand, inStock:true});
-        }
-    });
-    bulkInput.value='';
-    save();
-}
-
-function debouncedRender(){
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(render,150);
 }
 
 function render(){
@@ -171,11 +204,7 @@ function render(){
 
     lastFiltered = data.filter(i=>{
         const blob = `${i.brand} ${i.name} ${i.cat}`.toLowerCase();
-        if(searchInput.value.toLowerCase().trim() === "out") {
-            return !i.inStock && (brandFilter==="ALL"||i.brand===brandFilter);
-        }
-        return searchTerms.every(t=>blob.includes(t)) &&
-               (brandFilter==="ALL"||i.brand===brandFilter);
+        return searchTerms.every(t=>blob.includes(t)) && (brandFilter==="ALL"||i.brand===brandFilter);
     });
 
     if(isAdmin){
@@ -183,12 +212,6 @@ function render(){
         statLow.textContent = lastFiltered.filter(i=>!i.inStock).length;
         statBrands.textContent = new Set(lastFiltered.map(i=>i.brand)).size;
     }
-
-    const hasSearch = searchInput.value.trim().length>0||filterBrand.value!=="ALL";
-    if(hasSearch){
-        resultCount.textContent=`Showing ${lastFiltered.length} result${lastFiltered.length!==1?'s':''}`;
-        resultCount.classList.remove('hidden');
-    } else resultCount.classList.add('hidden');
 
     const groups = lastFiltered.reduce((acc,i)=>{
         const key = `${i.brand}||${i.name}`;
@@ -201,39 +224,33 @@ function render(){
         const [brand, model] = key.split('||');
         const items = groups[key];
         const open = expandedModels.has(key);
-        html+=
-        `<div class="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 overflow-hidden">
+        html+= `
+        <div class="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
             <div onclick="toggleModel('${key}')" class="group-header p-5 flex justify-between items-center select-none">
                 <div>
-                    <span class="text-[9px] font-black text-orange-500 bg-orange-100 dark:bg-orange-900/20 px-2 py-1 rounded-md">${brand}</span>
-                    <h3 class="text-lg font-bold dark:text-white">${model}</h3>
+                    <span class="text-[9px] font-black text-orange-500 bg-orange-100 dark:bg-orange-900/20 px-2 py-1 rounded-md uppercase">${brand}</span>
+                    <h3 class="text-lg font-bold dark:text-white model-name" data-key="${key}">${model} <span class="text-xs text-slate-400 font-medium ml-1">(${items.length})</span></h3>
                 </div>
                 <span class="transform transition-transform ${open?'rotate-180':''} opacity-30">▼</span>
             </div>
-            <div class="${open?'block':'hidden'} bg-slate-50 dark:bg-slate-950/50 border-t">
+            <div class="${open?'block':'hidden'} bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800">
                 <table class="w-full text-sm">
-                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                        ${items.map(item=>
-                        `<tr class="${selectMode && selectedItems.has(item.id)?'bg-red-100 dark:bg-red-900/30':''}">
-                            ${selectMode?`<td class="px-2 py-4 text-center"><input type="checkbox" onchange="toggleSelect(${item.id}, this)" ${selectedItems.has(item.id)?'checked':''}></td>`:''}
-                            <td class="px-6 py-4 font-bold text-xs uppercase text-slate-500">${item.cat}</td>
-                            <td onclick="${selectMode?'':'toggleStock('+item.id+')'}" class="px-2 py-4 text-center text-[9px] font-black cursor-pointer">
-                                ${item.inStock?'<span class="text-emerald-500">IN STOCK</span>':'<span class="text-red-500">OUT OF STOCK</span>'}
-                            </td>
-                            <td class="px-6 py-4 text-right font-mono font-bold text-blue-600 ${isAdmin ? 'cursor-pointer' : ''}"
-    ${isAdmin ? `onclick="modifyPrice(${item.id})"` : ''}>
-    ${
-        isAdmin
-            ? (item.price && item.price !== "Contact"
-                ? `৳${item.price}`
-                : `SET PRICE`)
-            : (item.price && item.price !== "Contact"
-                ? `৳${item.price}`
-                : `Contact`)
-    }
-</td>
-                            ${isAdmin && !selectMode?`<td class="w-10 pr-4 text-right"><button onclick="deleteItem(${item.id})" class="text-red-400">✕</button></td>`:''}
-                        </tr>`).join('')}
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        ${items.map(item=>{
+                            const pColor = item.color==='green' ? 'text-green-600' : 'text-blue-600';
+                            const pDisp = !isAdmin && item.color==='green' ? 'Contact' : (item.price && item.price!=='Contact'?`৳${item.price}`:'Contact');
+                            return `<tr class="${selectMode && selectedItems.has(item.id)?'bg-red-100 dark:bg-red-900/30':''}">
+                                ${selectMode?`<td class="px-2 py-4 text-center"><input type="checkbox" onchange="toggleSelect(${item.id}, this)" ${selectedItems.has(item.id)?'checked':''}></td>`:''}
+                                <td class="px-6 py-4 font-bold text-xs uppercase text-slate-500">${item.cat}</td>
+                                <td onclick="${selectMode?'':'toggleStock('+item.id+')'}" class="px-2 py-4 text-center text-[9px] font-black cursor-pointer">
+                                    ${item.inStock?'<span class="text-emerald-500">IN STOCK</span>':'<span class="text-red-500">OUT OF STOCK</span>'}
+                                </td>
+                                <td onclick="${isAdmin ? 'editPriceModal('+item.id+')' : ''}" class="px-6 py-4 text-right font-mono font-bold ${pColor} ${isAdmin?'cursor-pointer':''}" data-id="${item.id}">
+                                    ${pDisp}
+                                </td>
+                                ${isAdmin && !selectMode?`<td class="w-10 pr-4 text-right"><button onclick="deleteItem(${item.id})" class="text-red-400">✕</button></td>`:''}
+                            </tr>`;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -242,74 +259,70 @@ function render(){
 
     vaultContent.innerHTML=html;
     emptyState.classList.toggle('hidden', lastFiltered.length>0);
-}
 
-function toggleSelect(id, checkbox){
-    if(checkbox.checked) selectedItems.add(id);
-    else selectedItems.delete(id);
-}
-
-function deleteSelected(){
-    if(selectedItems.size && confirm("Delete selected items?")){
-        data = data.filter(x=>!selectedItems.has(x.id));
-        selectedItems.clear();
-        save();
-    }
-}
-
-function toggleModel(key){ expandedModels.has(key)?expandedModels.delete(key):expandedModels.add(key); render(); }
-function modifyPrice(id){ const p=prompt("Price:"); if(p!==null){ const i=data.find(x=>x.id===id); if(i){ i.price=p.trim()||"Contact"; save(); } } }
-function toggleStock(id){ if(isAdmin){ const i=data.find(x=>x.id===id); if(i){ i.inStock=!i.inStock; save(); } } }
-function deleteItem(id){ if(confirm("Delete?")){ data=data.filter(x=>x.id!==id); save(); } }
-function save(){ localStorage.setItem('ht_vault_v2', JSON.stringify(data)); render(); }
-
-function exportExcel(){
-    // Sort by Brand first, then Model
-    const sortedData = [...lastFiltered].sort((a, b) => {
-        if(a.brand < b.brand) return -1;
-        if(a.brand > b.brand) return 1;
-        if(a.name < b.name) return -1;
-        if(a.name > b.name) return 1;
-        return 0;
+    // ADMIN HANDLERS
+    document.querySelectorAll('.model-name').forEach(el=>{
+        addLongPress(el, ()=>{
+            if(!isAdmin) return;
+            const key = el.dataset.key;
+            const [brand, oldN] = key.split('||');
+            openActionModal("Rename Model", oldN, (newN) => {
+                if(newN && newN !== oldN){
+                    data.forEach(i => { if(i.brand === brand && i.name === oldN) i.name = toTitleCase(newN); });
+                    save();
+                }
+            });
+        });
     });
 
-    const rows = sortedData.map(i=>({
-        Brand: i.brand,
-        Model: i.name,
-        Category: i.cat,
-        Stock: i.inStock?"YES":"NO",
-        Price: i.price
-    }));
+    document.querySelectorAll('td[data-id]').forEach(td=>{
+        addLongPress(td, () => openColorPicker(Number(td.dataset.id)));
+    });
+}
 
+function editPriceModal(id) {
+    const item = data.find(x=>x.id===id);
+    if(!item) return;
+    openActionModal("Edit Price", item.price, (newP) => {
+        item.price = newP.trim() || "Contact";
+        save();
+    });
+}
+
+function addOrUpdate(){
+    const bulk = bulkInput.value;
+    const brand = modelBrand.value;
+    const cat = modelCategory.value;
+    bulk.split('\n').forEach(line=>{
+        if(!line.trim()) return;
+        let [rawN, price="Contact"] = line.split(',').map(s=>s.trim());
+        const dName = toTitleCase(rawN);
+        const existing = data.find(i => i.brand===brand && i.cat===cat && i.name.toLowerCase()===rawN.toLowerCase());
+        if(existing){ existing.price = price; existing.name = dName; }
+        else { data.push({id:Date.now()+Math.random(), name:dName, price, cat, brand, inStock:true, color:'blue'}); }
+    });
+    bulkInput.value=''; save();
+}
+
+function debouncedRender(){ clearTimeout(searchTimer); searchTimer=setTimeout(render,150); }
+function toggleSelect(id, checkbox){ if(checkbox.checked) selectedItems.add(id); else selectedItems.delete(id); }
+function deleteSelected(){ if(selectedItems.size && confirm("Delete selected?")){ data=data.filter(x=>!selectedItems.has(x.id)); selectedItems.clear(); save(); } }
+function toggleStock(id){ if(isAdmin){ const i=data.find(x=>x.id===id); if(i){ i.inStock=!i.inStock; save(); } } }
+function deleteItem(id){ if(confirm("Delete?")){ data=data.filter(x=>x.id!==id); save(); } }
+
+function exportExcel(){
+    const rows = lastFiltered.map(i=>({Brand:i.brand, Model:i.name, Category:i.cat, Stock:i.inStock?"YES":"NO", Price:i.price}));
     const ws=XLSX.utils.json_to_sheet(rows);
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-    XLSX.writeFile(wb,"HT_Inventory_Filtered.xlsx");
+    XLSX.writeFile(wb,"HT_Inventory.xlsx");
 }
-
 function downloadBackup(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); a.download="HT_Backup.json"; a.click(); }
-function importBackup(e){ const r=new FileReader(); r.onload=()=>{ data=JSON.parse(r.result); save(); alert("Imported!"); }; r.readAsText(e.target.files[0]); }
-
-if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js'); }); }
-
-let lastScrollWindow = window.scrollY || 0;
-let lastScrollVault = vaultContent.scrollTop || 0;
-const collapseThreshold = 200;
+function importBackup(e){ const r=new FileReader(); r.onload=()=>{ try{ data=JSON.parse(r.result); save(); alert("Imported!"); } catch(e){ alert("Error"); }}; r.readAsText(e.target.files[0]); }
 
 window.addEventListener('scroll', () => {
-    const currentScroll = window.scrollY || 0;
-    if (expandedModels.size > 0 && Math.abs(currentScroll - lastScrollWindow) >= collapseThreshold) {
-        expandedModels.clear();
-        render();
-        lastScrollWindow = currentScroll;
-    }
-});
-vaultContent.addEventListener('scroll', () => {
-    const currentScroll = vaultContent.scrollTop || 0;
-    if (expandedModels.size > 0 && Math.abs(currentScroll - lastScrollVault) >= collapseThreshold) {
-        expandedModels.clear();
-        render();
-        lastScrollVault = currentScroll;
+    if (expandedModels.size > 0 && Math.abs(window.scrollY - lastScrollPos) > 300) {
+        expandedModels.clear(); render(); lastScrollPos = window.scrollY;
     }
 });
 
