@@ -12,10 +12,8 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
-/* Smooth Transition for Theme Change */
-* {
-    transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease;
-}
+/* Smooth Transitions */
+* { transition: background-color 0.3s ease, border-color 0.3s ease; }
 
 body { 
     font-family: 'Inter', sans-serif; 
@@ -23,11 +21,14 @@ body {
     scroll-behavior: smooth; 
 }
 
-/* CRITICAL: Prevent system menus and text selection on long-press elements */
+/* CRITICAL MOBILE FIX: Disable system menus and text selection on holdable items */
 .price-cell, .model-name {
-    user-select: none;
     -webkit-user-select: none;
-    touch-action: none; /* Disables browser-level touch actions to prioritize our script */
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none; /* Disables iOS context menu */
+    touch-action: manipulation;
 }
 
 .group-header:hover { cursor: pointer; background-color: rgba(59, 130, 246, 0.05); }
@@ -128,16 +129,12 @@ const BRANDS = ["SAMSUNG","XIAOMI","OPPO","VIVO","REALME","IPHONE","HUAWEI","ONE
 const CATEGORIES = ["Logic Board","Logic Board(IC)","Front Camera","Main Flex","LCD Flex","Finger Sensor","Ringer Box","Ear Speaker","Sim Tray","Power Flex","Volume Flex","Rubber switch","Camera Glass","Speaker Net","Network Flex","SIM Flex","Flashlight Sensor","Middle Frame","Housing","Back Part"];
 
 let data = JSON.parse(localStorage.getItem('ht_vault_v2')) || [];
-data.forEach(i => { 
-    if(!i.color) i.color='blue'; 
-    if(!i.id) i.id = Date.now() + Math.random(); 
-});
+data.forEach(i => { if(!i.color) i.color='blue'; if(!i.id) i.id = Date.now() + Math.random(); });
 
 let isAdmin = false;
 let bulkColor = 'blue';
 let expandedModels = new Set();
 let searchTimer;
-let lastScrollPos = 0;
 let modalCallback = null;
 let currentEditingId = null;
 let windowFiltered = [];
@@ -170,13 +167,8 @@ function setBulkColor(color) {
     bulkColor = color;
     bulkColorBlue.classList.toggle('border-blue-600', color === 'blue');
     bulkColorBlue.classList.toggle('bg-blue-600/10', color === 'blue');
-    bulkColorBlue.classList.toggle('border-transparent', color !== 'blue');
-    bulkColorBlue.classList.toggle('bg-slate-100', color !== 'blue');
-    
     bulkColorGreen.classList.toggle('border-emerald-600', color === 'green');
     bulkColorGreen.classList.toggle('bg-emerald-600/10', color === 'green');
-    bulkColorGreen.classList.toggle('border-transparent', color !== 'green');
-    bulkColorGreen.classList.toggle('bg-slate-100', color !== 'green');
 }
 
 function openActionModal(title, defaultValue, callback) {
@@ -217,8 +209,9 @@ function addOrUpdate(){
             existing.price = price; 
             existing.name = dName;
             existing.color = bulkColor;
+        } else {
+            data.push({id:Date.now()+Math.random(), name:dName, price, cat, brand, inStock:true, color:bulkColor});
         }
-        else { data.push({id:Date.now()+Math.random(), name:dName, price, cat, brand, inStock:true, color:bulkColor}); }
     });
     bulkInput.value=''; save();
 }
@@ -234,7 +227,7 @@ function save(){ localStorage.setItem('ht_vault_v2', JSON.stringify(data)); rend
 
 function toggleModel(key){
     if(expandedModels.has(key)) expandedModels.delete(key);
-    else { expandedModels.add(key); lastScrollPos = window.scrollY; }
+    else expandedModels.add(key);
     render();
 }
 
@@ -308,74 +301,62 @@ function render(){
     vaultContent.innerHTML = html;
     emptyState.classList.toggle('hidden', windowFiltered.length > 0);
 
-    // Attach mobile-ready long press
-    document.querySelectorAll('.model-name').forEach(el=>{
-        addLongPress(el, ()=>{
-            if(!isAdmin) return;
-            const key = el.dataset.key;
-            const [brand, oldN] = key.split('||');
-            openActionModal("Rename Model", oldN, (newN) => {
-                if(newN && newN !== oldN){
-                    data.forEach(i => { if(i.brand === brand && i.name === oldN) i.name = toTitleCase(newN); });
-                    save();
-                }
-            });
+    // Re-attach long-press handlers
+    document.querySelectorAll('.model-name').forEach(el=> addLongPress(el, () => {
+        if(!isAdmin) return;
+        const [brand, oldN] = el.dataset.key.split('||');
+        openActionModal("Rename Model", oldN, (newN) => {
+            if(newN && newN !== oldN){
+                data.forEach(i => { if(i.brand === brand && i.name === oldN) i.name = toTitleCase(newN); });
+                save();
+            }
         });
-    });
+    }));
 
-    document.querySelectorAll('.price-cell').forEach(td=>{
-        addLongPress(td, () => openColorPicker(Number(td.dataset.id)));
-    });
+    document.querySelectorAll('.price-cell').forEach(td => addLongPress(td, () => openColorPicker(Number(td.dataset.id))));
 }
 
 /**
- * RE-ENGINEERED MOBILE LONG-PRESS
- * Fixes system menu interference and scrolling conflict.
+ * MASTER MOBILE LONG-PRESS HANDLER
  */
 function addLongPress(el, callback) {
     let timer;
     let isMoving = false;
+    let startX, startY;
 
     const start = (e) => {
+        if (!isAdmin) return;
         isMoving = false;
-        // Check for right-click on PC
-        if (e.button === 2) return;
-        
+        const touch = e.touches ? e.touches[0] : e;
+        startX = touch.clientX;
+        startY = touch.clientY;
+
         timer = setTimeout(() => {
             if (!isMoving) {
-                // If it's a touch event, we stop the browser context menu
-                if (e.type === 'touchstart') e.preventDefault();
+                if (navigator.vibrate) navigator.vibrate(40);
                 callback();
             }
-        }, 800);
-    };
-
-    const cancel = () => {
-        clearTimeout(timer);
+        }, 700);
     };
 
     const move = (e) => {
-        // If user moves finger/mouse, cancel the long press (allows scrolling)
-        isMoving = true;
-        clearTimeout(timer);
+        const touch = e.touches ? e.touches[0] : e;
+        if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
+            isMoving = true;
+            clearTimeout(timer);
+        }
     };
 
-    // Listeners for Mouse
+    const cancel = () => clearTimeout(timer);
+
+    el.addEventListener('touchstart', start, { passive: false });
+    el.addEventListener('touchmove', move, { passive: true });
+    el.addEventListener('touchend', cancel);
     el.addEventListener('mousedown', start);
     el.addEventListener('mousemove', move);
     el.addEventListener('mouseup', cancel);
     el.addEventListener('mouseleave', cancel);
-
-    // Listeners for Touch (Mobile)
-    el.addEventListener('touchstart', start, { passive: false });
-    el.addEventListener('touchmove', move, { passive: true });
-    el.addEventListener('touchend', cancel);
-    el.addEventListener('touchcancel', cancel);
-    
-    // Specifically block context menu on these items
-    el.addEventListener('contextmenu', (e) => {
-        if (isAdmin) e.preventDefault();
-    });
+    el.addEventListener('contextmenu', (e) => { if(isAdmin) e.preventDefault(); });
 }
 
 function editPriceModal(id) {
@@ -397,31 +378,24 @@ function toggleStock(id){
 function debouncedRender(){ clearTimeout(searchTimer); searchTimer=setTimeout(render,150); }
 
 function exportExcel(){
-    if (windowFiltered.length === 0) return alert("Nothing visible to export!");
     const rows = windowFiltered.map(i=>({ Brand: i.brand, Model: i.name, Category: i.cat, Stock: i.inStock ? "YES" : "NO", Price: i.price }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Filtered_Vault");
-    XLSX.writeFile(wb, `HT_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Vault");
+    XLSX.writeFile(wb, `HT_Export.xlsx`);
 }
 
 function downloadBackup(){
     const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
     const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`HT_FULL_BACKUP_${new Date().toLocaleDateString()}.json`; a.click();
+    a.download=`HT_BACKUP.json`; a.click();
 }
 
 function importBackup(e){
     const r = new FileReader();
-    r.onload=()=>{ try { data=JSON.parse(r.result); save(); alert("Backup restored!"); } catch(e){ alert("Invalid file."); } };
+    r.onload=()=>{ try { data=JSON.parse(r.result); save(); alert("Imported!"); } catch(e){ alert("Error."); } };
     r.readAsText(e.target.files[0]);
 }
-
-window.addEventListener('scroll', () => {
-    if (expandedModels.size > 0 && Math.abs(window.scrollY - lastScrollPos) > 400) {
-        expandedModels.clear(); render();
-    }
-});
 
 updateUI();
 </script>
