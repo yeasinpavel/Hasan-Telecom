@@ -11,7 +11,25 @@
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+
+/* Smooth Transition for Theme Change */
+* {
+    transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease;
+}
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    -webkit-tap-highlight-color: transparent; 
+    scroll-behavior: smooth; 
+}
+
+/* CRITICAL: Prevent system menus and text selection on long-press elements */
+.price-cell, .model-name {
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none; /* Disables browser-level touch actions to prioritize our script */
+}
+
 .group-header:hover { cursor: pointer; background-color: rgba(59, 130, 246, 0.05); }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -20,7 +38,7 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen p-4 md:p-8 flex flex-col items-center gap-6 transition-colors duration-300">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen p-4 md:p-8 flex flex-col items-center gap-6">
 
 <div id="actionModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-6">
     <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate text-center">
@@ -97,7 +115,7 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 </div>
 
 <div class="sticky-bar w-full max-w-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-[32px] border border-slate-200 dark:border-slate-800 space-y-2 shadow-xl">
-    <input type="text" id="searchInput" oninput="debouncedRender()" placeholder="Search Models or type 'out'..." class="w-full bg-slate-100 dark:bg-slate-950 p-5 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 transition-all font-semibold">
+    <input type="text" id="searchInput" oninput="debouncedRender()" placeholder="Search Models..." class="w-full bg-slate-100 dark:bg-slate-950 p-5 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 transition-all font-semibold">
     <select id="filterBrand" onchange="render()" class="w-full bg-slate-100 dark:bg-slate-800 p-5 rounded-2xl font-black text-orange-600 dark:text-orange-500 uppercase"></select>
 </div>
 
@@ -255,7 +273,7 @@ function render(){
         const items = groups[key];
         const isOpen = expandedModels.has(key);
         html+= `
-        <div class="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all">
+        <div class="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
             <div onclick="toggleModel('${key}')" class="group-header p-5 flex justify-between items-center select-none">
                 <div class="flex flex-col">
                     <span class="text-[9px] font-black text-orange-500 bg-orange-100 dark:bg-orange-900/20 px-2 py-0.5 rounded w-fit uppercase mb-1">${brand}</span>
@@ -275,7 +293,7 @@ function render(){
                                 <td onclick="toggleStock(${item.id})" class="px-2 py-4 text-center text-[10px] font-black cursor-pointer">
                                     ${item.inStock?'<span class="text-emerald-500">IN STOCK</span>':'<span class="text-red-500">STOCK OUT</span>'}
                                 </td>
-                                <td onclick="${isAdmin ? 'editPriceModal('+item.id+')' : ''}" class="px-4 py-4 text-right font-mono font-bold ${pColor} price-cell" data-id="${item.id}">
+                                <td class="px-4 py-4 text-right font-mono font-bold ${pColor} price-cell" data-id="${item.id}" onclick="${isAdmin ? 'editPriceModal('+item.id+')' : ''}">
                                     ${pDisp}
                                 </td>
                                 ${isAdmin ? `<td class="pr-6 py-4 w-8 text-right"><button onclick="deleteItem(${item.id})" class="text-red-500/40 hover:text-red-600 font-bold">✕</button></td>` : ''}
@@ -290,7 +308,7 @@ function render(){
     vaultContent.innerHTML = html;
     emptyState.classList.toggle('hidden', windowFiltered.length > 0);
 
-    // Re-attach long press for renames and price color
+    // Attach mobile-ready long press
     document.querySelectorAll('.model-name').forEach(el=>{
         addLongPress(el, ()=>{
             if(!isAdmin) return;
@@ -310,21 +328,53 @@ function render(){
     });
 }
 
-// Fixed Mobile Interaction Logic
+/**
+ * RE-ENGINEERED MOBILE LONG-PRESS
+ * Fixes system menu interference and scrolling conflict.
+ */
 function addLongPress(el, callback) {
     let timer;
-    const start = (e) => { 
-        // Prevent default only if necessary, but allow scrolling
-        timer = setTimeout(callback, 700); 
-    };
-    const cancel = () => clearTimeout(timer);
+    let isMoving = false;
 
+    const start = (e) => {
+        isMoving = false;
+        // Check for right-click on PC
+        if (e.button === 2) return;
+        
+        timer = setTimeout(() => {
+            if (!isMoving) {
+                // If it's a touch event, we stop the browser context menu
+                if (e.type === 'touchstart') e.preventDefault();
+                callback();
+            }
+        }, 800);
+    };
+
+    const cancel = () => {
+        clearTimeout(timer);
+    };
+
+    const move = (e) => {
+        // If user moves finger/mouse, cancel the long press (allows scrolling)
+        isMoving = true;
+        clearTimeout(timer);
+    };
+
+    // Listeners for Mouse
     el.addEventListener('mousedown', start);
-    el.addEventListener('touchstart', start, {passive: true});
+    el.addEventListener('mousemove', move);
+    el.addEventListener('mouseup', cancel);
+    el.addEventListener('mouseleave', cancel);
+
+    // Listeners for Touch (Mobile)
+    el.addEventListener('touchstart', start, { passive: false });
+    el.addEventListener('touchmove', move, { passive: true });
+    el.addEventListener('touchend', cancel);
+    el.addEventListener('touchcancel', cancel);
     
-    // Cancel timer if finger moves (scrolling) or lifts
-    ['mouseup', 'mouseleave', 'touchend', 'touchcancel', 'touchmove'].forEach(ev => {
-        el.addEventListener(ev, cancel);
+    // Specifically block context menu on these items
+    el.addEventListener('contextmenu', (e) => {
+        if (isAdmin) e.preventDefault();
     });
 }
 
