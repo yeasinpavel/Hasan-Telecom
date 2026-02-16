@@ -138,6 +138,7 @@ let searchTimer;
 let modalCallback = null;
 let currentEditingId = null;
 let windowFiltered = [];
+let startScrollY = 0; // TRACKER FOR AUTO COLLAPSE
 
 const toTitleCase = s => s.toLowerCase().split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
 
@@ -225,11 +226,27 @@ function deleteItem(id) {
 
 function save(){ localStorage.setItem('ht_vault_v2', JSON.stringify(data)); render(); }
 
+// UPDATED: AUTO COLLAPSE OTHERS & TRACK SCROLL POSITION
 function toggleModel(key){
-    if(expandedModels.has(key)) expandedModels.delete(key);
-    else expandedModels.add(key);
+    if(expandedModels.has(key)){
+        expandedModels.clear();
+    } else {
+        expandedModels.clear(); 
+        expandedModels.add(key);
+        startScrollY = window.scrollY;
+    }
     render();
 }
+
+// NEW: COLLAPSE ON 300PX SCROLL
+window.addEventListener('scroll', () => {
+    if (expandedModels.size > 0) {
+        if (Math.abs(window.scrollY - startScrollY) > 300) {
+            expandedModels.clear();
+            render();
+        }
+    }
+}, { passive: true });
 
 function render(){
     if(!modelBrand.innerHTML){
