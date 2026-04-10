@@ -3,433 +3,957 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HASAN TELECOM - Pro Vault v2.6.2</title>
-
-<link rel="manifest" href="manifest.json">
+<title>HASAN TELECOM - Pro Vault v2.8.0</title>
 <meta name="theme-color" content="#2563eb">
-<link rel="apple-touch-icon" href="logo.png">
-
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HT Vault">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/9316/9316744.png">
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22HASAN%20TELECOM%20Pro%20Vault%22,%22short_name%22:%22HT%20Vault%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#020617%22,%22theme_color%22:%22#2563eb%22,%22icons%22:[{%22src%22:%22https://cdn-icons-png.flaticon.com/512/9316/9316744.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { darkMode: 'class' }</script>
-
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
-/* Smooth Transitions */
 * { transition: background-color 0.3s ease, border-color 0.3s ease; }
+body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
 
-body { 
-    font-family: 'Inter', sans-serif; 
-    -webkit-tap-highlight-color: transparent; 
-    scroll-behavior: smooth; 
-}
-
-/* CRITICAL MOBILE FIX: Disable system menus and text selection on holdable items */
 .price-cell, .model-name {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none; /* Disables iOS context menu */
-    touch-action: manipulation;
+  -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
+  user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
 }
 
-.group-header:hover { cursor: pointer; background-color: rgba(59, 130, 246, 0.05); }
+.group-header:hover { cursor: pointer; background-color: rgba(59,130,246,0.05); }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
 .sticky-bar { position: sticky; top: 0; z-index: 50; }
 .modal-animate { animation: fadeIn 0.15s ease-out; }
-@keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+@keyframes fadeIn { from { opacity:0; transform:scale(0.98); } to { opacity:1; transform:scale(1); } }
+.drag-over { border-color: #2563eb !important; background-color: rgba(37,99,235,0.08) !important; }
+
+/* Toast */
+#toast {
+  position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(80px);
+  z-index:999; background:#1e293b; color:#fff;
+  padding:12px 28px; border-radius:99px;
+  font-size:13px; font-weight:700; letter-spacing:0.05em;
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);
+  transition:transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.3s;
+  opacity:0; pointer-events:none; white-space:nowrap;
+}
+#toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+/* Side Drawer */
+#sideDrawer {
+  position:fixed; top:0; right:-280px; width:260px; height:100vh;
+  z-index:200; background:#fff;
+  transition:right 0.3s cubic-bezier(.4,0,.2,1);
+  box-shadow:-8px 0 32px rgba(0,0,0,0.18);
+  display:flex; flex-direction:column; padding:36px 20px 24px;
+  gap:12px;
+}
+.dark #sideDrawer { background:#0f172a; border-left:1px solid #1e293b; }
+#sideDrawer.open { right:0; }
+#drawerOverlay {
+  position:fixed; inset:0; z-index:199;
+  background:rgba(0,0,0,0.5); backdrop-filter:blur(2px);
+  display:none;
+}
+#drawerOverlay.open { display:block; }
+
+/* Floating menu button */
+#floatingMenuBtn {
+  position:fixed; bottom:28px; right:20px; z-index:198;
+  width:44px; height:44px; border-radius:50%;
+  background:#2563eb; color:#fff;
+  font-size:18px; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 20px rgba(37,99,235,0.5);
+  border:none; cursor:pointer;
+  transition:transform 0.2s, background 0.2s;
+}
+#floatingMenuBtn:active { transform:scale(0.92); }
+
+/* Countdown ring in search */
+#countdownRing {
+  position:absolute; right:16px; top:50%; transform:translateY(-50%);
+  width:22px; height:22px; display:none;
+}
+#countdownRing svg { transform:rotate(-90deg); }
+#countdownRing circle.track { fill:none; stroke:#e2e8f0; stroke-width:3; }
+#countdownRing circle.prog { fill:none; stroke:#f59e0b; stroke-width:3; stroke-linecap:round;
+  stroke-dasharray:56.5; stroke-dashoffset:0; transition:stroke-dashoffset 1s linear; }
+.dark #countdownRing circle.track { stroke:#334155; }
+
+/* Dashboard */
+#dashboard { animation: fadeIn 0.2s ease-out; }
+.dash-cat-row { display:flex; justify-content:space-between; align-items:center;
+  padding:10px 14px; border-radius:12px; margin-bottom:4px; }
+.dash-cat-row:hover { background:rgba(59,130,246,0.05); }
 </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen p-4 md:p-8 flex flex-col items-center gap-6">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen p-4 md:p-8 flex flex-col items-center gap-4">
 
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Drawer overlay -->
+<div id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<!-- Side Drawer (Staff View: theme + login) -->
+<div id="sideDrawer">
+  <p class="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase mb-2">Menu</p>
+  <button onclick="toggleTheme()" id="themeDrawerBtn"
+    class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-bold text-sm text-left">
+    <span id="themeIcon">🌙</span> <span id="themeLabel">Dark Mode</span>
+  </button>
+  <button id="loginDrawerBtn" onclick="toggleAdmin()"
+    class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-blue-600 text-white font-black text-sm uppercase tracking-widest">
+    🔑 Admin Login
+  </button>
+  <div id="drawerAdminInfo" class="hidden flex-col gap-2">
+    <div class="px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-[11px] font-black text-emerald-600 uppercase tracking-wider">✓ Admin Authorized</div>
+    <button onclick="logout(); closeDrawer();" class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 font-black text-sm text-red-600 uppercase">✕ Logout</button>
+  </div>
+  <div class="mt-auto text-[9px] text-slate-300 dark:text-slate-600 font-bold text-center tracking-widest uppercase">HT Vault v2.8.0</div>
+</div>
+
+<!-- Floating menu button (staff view only) -->
+<button id="floatingMenuBtn" onclick="openDrawer()" title="Menu">⚙️</button>
+
+<!-- ════════════════════ LOGIN MODAL ════════════════════ -->
+<div id="loginModal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-6">
+  <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate text-center">
+    <h4 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-1">Admin Access</h4>
+    <p class="text-2xl mb-6">🔐</p>
+    <div class="relative mb-6">
+      <input type="password" id="loginPasswordInput" placeholder="Enter password"
+        class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 dark:text-white font-bold text-center pr-12"
+        onkeydown="if(event.key==='Enter') confirmLogin()">
+      <button onclick="toggleLoginVisibility()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg" id="loginEyeBtn">👁️</button>
+    </div>
+    <div class="flex flex-col gap-3">
+      <button onclick="confirmLogin()" class="w-full py-4 rounded-2xl bg-blue-600 text-white font-black uppercase tracking-widest shadow-lg">Login</button>
+      <button onclick="closeLoginModal()" class="w-full py-2 text-slate-500 font-bold text-[10px] uppercase">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ ACTION MODAL ════════════════════ -->
 <div id="actionModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-6">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate text-center">
-        <h4 id="modalTitle" class="text-xs font-black tracking-widest text-slate-400 uppercase mb-4">Edit</h4>
-        <input type="text" id="modalInput" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl mb-6 outline-none border-2 border-transparent focus:border-blue-500 dark:text-white font-bold text-center">
-        <div class="flex flex-col gap-3">
-            <button onclick="confirmModalAction()" class="w-full py-4 rounded-2xl bg-blue-600 text-white font-black uppercase tracking-widest shadow-lg">Confirm</button>
-            <button onclick="closeActionModal()" class="w-full py-2 text-slate-500 font-bold text-[10px] uppercase">Cancel</button>
-        </div>
+  <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate text-center">
+    <h4 id="modalTitle" class="text-xs font-black tracking-widest text-slate-400 uppercase mb-4">Edit</h4>
+    <input type="text" id="modalInput" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl mb-6 outline-none border-2 border-transparent focus:border-blue-500 dark:text-white font-bold text-center">
+    <div class="flex flex-col gap-3">
+      <button onclick="confirmModalAction()" class="w-full py-4 rounded-2xl bg-blue-600 text-white font-black uppercase tracking-widest shadow-lg">Confirm</button>
+      <button onclick="closeActionModal()" class="w-full py-2 text-slate-500 font-bold text-[10px] uppercase">Cancel</button>
     </div>
+  </div>
 </div>
 
+<!-- ════════════════════ COLOR PICKER MODAL ════════════════════ -->
 <div id="colorPickerModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-6">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate text-center">
-        <h4 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-6">Price Visibility</h4>
-        <div class="flex flex-col gap-4">
-            <button onclick="setPriceColor('blue')" class="w-full py-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-tighter shadow-lg">Visible (Blue)</button>
-            <button onclick="setPriceColor('green')" class="w-full py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-tighter shadow-lg">Hidden (Green)</button>
-            <button onclick="closeColorPicker()" class="w-full py-3 text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Cancel</button>
-        </div>
+  <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate text-center">
+    <h4 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-6">Price Visibility</h4>
+    <div class="flex flex-col gap-4">
+      <button onclick="setPriceColor('blue')" class="w-full py-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-tighter shadow-lg">Visible (Blue)</button>
+      <button onclick="setPriceColor('green')" class="w-full py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-tighter shadow-lg">Hidden (Green)</button>
+      <button onclick="closeColorPicker()" class="w-full py-3 text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Cancel</button>
     </div>
+  </div>
 </div>
 
-<div class="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] p-8 flex flex-col items-center text-center shadow-2xl">
-    <h1 class="text-3xl font-black text-blue-600 dark:text-blue-500 tracking-tighter uppercase mb-1">HASAN TELECOM</h1>
-    <p id="modeIndicator" class="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase mb-6">STAFF VIEW MODE</p>
-    <div class="flex items-center gap-4">
-        <button onclick="toggleTheme()" class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl">
-            <span id="themeIcon" class="text-xl">🌙</span>
-        </button>
-        <button id="adminBtn" onclick="toggleAdmin()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-sm tracking-widest shadow-lg">LOGIN</button>
-        <div id="adminTools" class="hidden flex gap-2"> 
-            <button onclick="exportExcel()" title="Export Filtered" class="bg-orange-600 p-4 rounded-2xl text-white shadow-lg">📊</button> 
-            <button onclick="downloadBackup()" title="Full Backup" class="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg">💾</button> 
-            <button onclick="logout()" title="Logout" class="bg-red-600 p-4 rounded-2xl text-white shadow-lg">✕</button> 
+<!-- ════════════════════ EXCEL PREVIEW MODAL ════════════════════ -->
+<div id="excelPreviewModal" class="hidden fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+  <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[28px] p-6 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate">
+    <h4 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-1">Excel Import Preview</h4>
+    <p id="excelPreviewCount" class="text-2xl font-black text-blue-500 mb-4">0 rows found</p>
+    <div id="excelPreviewTable" class="max-h-44 overflow-y-auto rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] font-mono mb-4"></div>
+    <div class="grid grid-cols-2 gap-2 mb-4">
+      <div>
+        <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Category Col</p>
+        <select id="mapCat" class="w-full bg-slate-200 dark:bg-slate-700 p-2 rounded-xl text-xs font-bold outline-none"></select>
+      </div>
+      <div>
+        <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Brand Col</p>
+        <select id="mapBrand" class="w-full bg-slate-200 dark:bg-slate-700 p-2 rounded-xl text-xs font-bold outline-none"></select>
+      </div>
+      <div>
+        <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Model Col</p>
+        <select id="mapModel" class="w-full bg-slate-200 dark:bg-slate-700 p-2 rounded-xl text-xs font-bold outline-none"></select>
+      </div>
+      <div>
+        <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Price Col</p>
+        <select id="mapPrice" class="w-full bg-slate-200 dark:bg-slate-700 p-2 rounded-xl text-xs font-bold outline-none"></select>
       </div>
     </div>
-</div>
-
-<div id="statsPanel" class="hidden w-full max-w-xl grid grid-cols-3 gap-3">
-    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
-        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Total</p>
-        <p id="statTotal" class="text-xl font-black text-blue-500">0</p>
-    </div>
-    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
-        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Out of Stock</p>
-        <p id="statLow" class="text-xl font-black text-red-500">0</p>
-    </div>
-    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
-        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Brands</p>
-        <p id="statBrands" class="text-xl font-black text-emerald-500">0</p>
-    </div>
-</div>
-
-<div id="adminPanel" class="hidden w-full max-w-xl bg-white dark:bg-slate-900 p-6 rounded-[32px] border-2 border-blue-600 shadow-2xl space-y-4">
-    <div class="grid grid-cols-2 gap-4">
-        <select id="modelBrand" class="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl outline-none font-bold text-sm"></select>
-        <select id="modelCategory" class="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl outline-none font-bold text-sm"></select>
-    </div>
+    <p class="text-[10px] text-slate-400 mb-3">Prices from Excel always import as <strong class="text-blue-500">Visible (Blue)</strong>. Duplicates will be updated.</p>
     <div class="flex flex-col gap-2">
-        <p class="text-[10px] font-black text-slate-400 uppercase ml-2">Default Price Color for Save:</p>
-        <div class="grid grid-cols-2 gap-2">
-            <button id="bulkColorBlue" onclick="setBulkColor('blue')" class="py-2 rounded-xl border-2 border-blue-600 bg-blue-600/10 text-blue-600 font-black text-[10px] uppercase">Visible (Blue)</button>
-            <button id="bulkColorGreen" onclick="setBulkColor('green')" class="py-2 rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 font-black text-[10px] uppercase">Hidden (Green)</button>
-        </div>
+      <button onclick="confirmExcelImport()" class="w-full py-4 rounded-2xl bg-blue-600 text-white font-black uppercase tracking-widest shadow-lg">Import All</button>
+      <button onclick="closeExcelPreview()" class="w-full py-2 text-slate-500 font-bold text-[10px] uppercase">Cancel</button>
     </div>
-    <textarea id="bulkInput" rows="3" placeholder="Model, Price" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl outline-none font-mono text-sm"></textarea>
-    <div class="grid grid-cols-2 gap-4">
-        <button onclick="addOrUpdate()" class="bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest">SAVE</button>
-        <label class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white py-4 rounded-2xl font-black uppercase text-center cursor-pointer text-xs flex items-center justify-center">
-            IMPORT <input type="file" id="importFile" class="hidden" onchange="importBackup(event)">
-        </label>
-    </div>
+  </div>
 </div>
 
-<div class="sticky-bar w-full max-w-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-[32px] border border-slate-200 dark:border-slate-800 space-y-2 shadow-xl">
-    <input type="text" id="searchInput" oninput="debouncedRender()" placeholder="Search Models..." class="w-full bg-slate-100 dark:bg-slate-950 p-5 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 transition-all font-semibold">
-    <select id="filterBrand" onchange="render()" class="w-full bg-slate-100 dark:bg-slate-800 p-5 rounded-2xl font-black text-orange-600 dark:text-orange-500 uppercase"></select>
+<!-- ════════════════════ CHANGE PASSWORD MODAL ════════════════════ -->
+<div id="changePwModal" class="hidden fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-6">
+  <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate text-center">
+    <h4 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-4">Change Password</h4>
+    <div class="flex flex-col gap-3 mb-6">
+      <div class="relative">
+        <input type="password" id="pwCurrent" placeholder="Current password"
+          class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 dark:text-white font-bold text-center pr-12">
+        <button onclick="togglePwVis('pwCurrent','eyeCur')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg" id="eyeCur">👁️</button>
+      </div>
+      <div class="relative">
+        <input type="password" id="pwNew" placeholder="New password"
+          class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 dark:text-white font-bold text-center pr-12">
+        <button onclick="togglePwVis('pwNew','eyeNew')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg" id="eyeNew">👁️</button>
+      </div>
+      <div class="relative">
+        <input type="password" id="pwConfirm" placeholder="Confirm new password"
+          class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 dark:text-white font-bold text-center pr-12">
+        <button onclick="togglePwVis('pwConfirm','eyeConf')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg" id="eyeConf">👁️</button>
+      </div>
+    </div>
+    <div class="flex flex-col gap-3">
+      <button onclick="confirmChangePw()" class="w-full py-4 rounded-2xl bg-blue-600 text-white font-black uppercase tracking-widest shadow-lg">Save Password</button>
+      <button onclick="closeChangePwModal()" class="w-full py-2 text-slate-500 font-bold text-[10px] uppercase">Cancel</button>
+    </div>
+  </div>
 </div>
 
+<!-- ════════════════════ HEADER (Admin always visible, compact) ════════════════════ -->
+<div class="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[28px] px-6 py-5 flex items-center justify-between shadow-xl">
+  <div>
+    <h1 class="text-2xl font-black text-blue-600 dark:text-blue-500 tracking-tighter uppercase leading-none">HASAN TELECOM</h1>
+    <p id="modeIndicator" class="text-[9px] text-slate-400 font-bold tracking-[0.2em] uppercase mt-0.5">STAFF VIEW MODE</p>
+  </div>
+  <!-- Admin tools shown only when logged in -->
+  <div id="adminTools" class="hidden flex items-center gap-2">
+    <button onclick="exportExcel()" title="Export Filtered" class="bg-orange-600 p-3 rounded-xl text-white shadow-md text-sm">📊</button>
+    <button onclick="downloadBackup()" title="Full Backup" class="bg-emerald-600 p-3 rounded-xl text-white shadow-md text-sm">💾</button>
+    <button onclick="logout()" title="Logout" class="bg-red-600 p-3 rounded-xl text-white shadow-md text-sm font-black">✕</button>
+  </div>
+</div>
+
+<!-- ════════════════════ STATS PANEL (Admin) ════════════════════ -->
+<div id="statsPanel" class="hidden w-full max-w-xl grid grid-cols-3 gap-3">
+  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Total</p>
+    <p id="statTotal" class="text-xl font-black text-blue-500">0</p>
+  </div>
+  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Out of Stock</p>
+    <p id="statLow" class="text-xl font-black text-red-500">0</p>
+  </div>
+  <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Brands</p>
+    <p id="statBrands" class="text-xl font-black text-emerald-500">0</p>
+  </div>
+</div>
+
+<!-- ════════════════════ ADMIN PANEL ════════════════════ -->
+<div id="adminPanel" class="hidden w-full max-w-xl bg-white dark:bg-slate-900 p-6 rounded-[28px] border-2 border-blue-600 shadow-2xl space-y-4">
+
+  <!-- Manual Entry -->
+  <div class="grid grid-cols-2 gap-3">
+    <select id="modelBrand" class="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl outline-none font-bold text-sm"></select>
+    <select id="modelCategory" class="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl outline-none font-bold text-sm"></select>
+  </div>
+  <div class="flex flex-col gap-2">
+    <p class="text-[10px] font-black text-slate-400 uppercase ml-1">Default Price Color for Manual Save:</p>
+    <div class="grid grid-cols-2 gap-2">
+      <button id="bulkColorBlue" onclick="setBulkColor('blue')" class="py-2 rounded-xl border-2 border-blue-600 bg-blue-600/10 text-blue-600 font-black text-[10px] uppercase">Visible (Blue)</button>
+      <button id="bulkColorGreen" onclick="setBulkColor('green')" class="py-2 rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 font-black text-[10px] uppercase">Hidden (Green)</button>
+    </div>
+  </div>
+  <textarea id="bulkInput" rows="3" placeholder="Model, Price" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl outline-none font-mono text-sm"></textarea>
+  <div class="grid grid-cols-2 gap-3">
+    <button onclick="addOrUpdate()" class="bg-blue-600 text-white py-3 rounded-2xl font-black uppercase tracking-widest text-sm">SAVE</button>
+    <label class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white py-3 rounded-2xl font-black uppercase text-center cursor-pointer text-xs flex items-center justify-center">
+      IMPORT JSON <input type="file" id="importFile" class="hidden" onchange="importBackup(event)">
+    </label>
+  </div>
+
+  <!-- Excel Import -->
+  <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+    <p class="text-[10px] font-black text-slate-400 uppercase mb-3 ml-1">📥 Import from Excel / CSV</p>
+    <label id="excelDropZone"
+      class="flex flex-col items-center justify-center gap-2 w-full py-5 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 cursor-pointer transition-all"
+      ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <span class="text-2xl">📊</span>
+      <span class="text-[11px] font-black text-slate-500 uppercase tracking-wider">Tap or Drop Excel / CSV File</span>
+      <span class="text-[10px] text-slate-400">Supports .xlsx, .xls, .csv — Price always imports as Blue (Visible)</span>
+      <input type="file" id="excelImportFile" class="hidden" accept=".xlsx,.xls,.csv" onchange="handleExcelFile(event)">
+    </label>
+  </div>
+
+  <!-- Brand Management -->
+  <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+    <p class="text-[10px] font-black text-slate-400 uppercase mb-3 ml-1">🏷️ Manage Brands</p>
+    <div class="flex gap-2 mb-3">
+      <input type="text" id="newBrandInput" placeholder="New brand name..." class="flex-1 bg-slate-100 dark:bg-slate-800 p-3 rounded-xl outline-none font-bold text-sm border-2 border-transparent focus:border-blue-500">
+      <button onclick="addBrand()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-sm">Add</button>
+    </div>
+    <div id="brandList" class="max-h-36 overflow-y-auto flex flex-col gap-1"></div>
+  </div>
+
+  <!-- Category Management -->
+  <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+    <p class="text-[10px] font-black text-slate-400 uppercase mb-3 ml-1">📂 Manage Categories</p>
+    <div class="flex gap-2 mb-3">
+      <input type="text" id="newCatInput" placeholder="New category name..." class="flex-1 bg-slate-100 dark:bg-slate-800 p-3 rounded-xl outline-none font-bold text-sm border-2 border-transparent focus:border-blue-500">
+      <button onclick="addCategory()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-sm">Add</button>
+    </div>
+    <div id="categoryList" class="max-h-36 overflow-y-auto flex flex-col gap-1"></div>
+  </div>
+
+  <!-- Change Password -->
+  <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+    <button onclick="openChangePwModal()" class="w-full py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-sm uppercase tracking-wider">🔑 Change Password</button>
+  </div>
+</div>
+
+<!-- ════════════════════ SEARCH BAR ════════════════════ -->
+<div class="sticky-bar w-full max-w-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 py-3 rounded-[24px] border border-slate-200 dark:border-slate-800 space-y-2 shadow-xl">
+  <div class="relative">
+    <input type="text" id="searchInput" oninput="onSearchInput()" placeholder="Search models..."
+      class="w-full bg-slate-100 dark:bg-slate-950 px-4 py-3 rounded-xl outline-none border-2 border-transparent focus:border-blue-500 transition-all font-semibold text-sm pr-10">
+    <div id="countdownRing">
+      <svg viewBox="0 0 22 22" width="22" height="22">
+        <circle class="track" cx="11" cy="11" r="9"/>
+        <circle class="prog" id="countdownCircle" cx="11" cy="11" r="9"/>
+      </svg>
+    </div>
+  </div>
+  <!-- Compact filters row -->
+  <div class="grid grid-cols-2 gap-2">
+    <select id="filterBrand" onchange="render()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl font-black text-orange-600 dark:text-orange-500 uppercase text-[11px] outline-none"></select>
+    <select id="filterCategory" onchange="render()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl font-black text-blue-600 dark:text-blue-400 uppercase text-[11px] outline-none"></select>
+  </div>
+</div>
+
+<!-- ════════════════════ DASHBOARD (Staff default view) ════════════════════ -->
+<div id="dashboard" class="w-full max-w-xl space-y-3">
+  <!-- Stats row -->
+  <div class="grid grid-cols-3 gap-3">
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+      <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Total</p>
+      <p id="dashTotal" class="text-xl font-black text-blue-500">0</p>
+    </div>
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+      <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Out of Stock</p>
+      <p id="dashLow" class="text-xl font-black text-red-500">0</p>
+    </div>
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+      <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Brands</p>
+      <p id="dashBrands" class="text-xl font-black text-emerald-500">0</p>
+    </div>
+  </div>
+  <!-- Category breakdown -->
+  <div class="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+      <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Category Overview</p>
+    </div>
+    <div id="dashCategoryList" class="px-3 py-2 max-h-96 overflow-y-auto"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ VAULT CONTENT ════════════════════ -->
 <div id="vaultContent" class="w-full max-w-xl space-y-3 pb-24"></div>
 <div id="emptyState" class="hidden p-20 text-center text-slate-400 font-bold italic">No results match your search.</div>
 
 <script>
-const ADMIN_KEY_ENCODED = "NTExNDM2";
-const BRANDS = ["SAMSUNG","XIAOMI","OPPO","VIVO","REALME","IPHONE","HUAWEI","ONEPLUS","ITEL","TECNO","INFINIX","GOOGLE PIXEL","SYMPHONY","NOKIA","MOTOROLA","NOTHING PHONE"];
-const CATEGORIES = ["Logic Board","Logic Board(IC)","Front Camera","Main Flex","LCD Flex","Finger Sensor","Ringer Box","Ear Speaker","Sim Tray","Power Flex","Volume Flex","Rubber switch","Camera Glass","Speaker Net","Network Flex","SIM Flex","Flashlight Sensor","Middle Frame","Housing","Back Part"];
+// ── PWA ──────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
 
+// ── Default Data ─────────────────────────────────────────────────
+const DEFAULT_BRANDS = ["SAMSUNG","XIAOMI","OPPO","VIVO","REALME","IPHONE","HUAWEI","ONEPLUS","ITEL","TECNO","INFINIX","GOOGLE PIXEL","SYMPHONY","NOKIA","MOTOROLA","NOTHING PHONE"];
+const DEFAULT_CATEGORIES = ["Logic Board","Logic Board(IC)","Front Camera","Main Flex","LCD Flex","Finger Sensor","Ringer Box","Ear Speaker","Sim Tray","Power Flex","Volume Flex","Rubber switch","Camera Glass","Speaker Net","Network Flex","SIM Flex","Flashlight Sensor","Middle Frame","Housing","Back Part"];
+
+// ── State ────────────────────────────────────────────────────────
 let data = JSON.parse(localStorage.getItem('ht_vault_v2')) || [];
-data.forEach(i => { if(!i.color) i.color='blue'; if(!i.id) i.id = Date.now() + Math.random(); });
+data.forEach(i => { if(!i.color) i.color='blue'; if(!i.id) i.id=Date.now()+Math.random(); });
+
+let BRANDS = JSON.parse(localStorage.getItem('ht_brands')) || [...DEFAULT_BRANDS];
+let CATEGORIES = JSON.parse(localStorage.getItem('ht_categories')) || [...DEFAULT_CATEGORIES];
+
+// Password stored encoded; default is original NTExNDM2
+let storedPwEncoded = localStorage.getItem('ht_pw') || "NTExNDM2";
 
 let isAdmin = false;
 let bulkColor = 'blue';
 let expandedModels = new Set();
-let searchTimer;
+let searchTimer, inactivityTimer, countdownInterval;
 let modalCallback = null;
 let currentEditingId = null;
 let windowFiltered = [];
-let startScrollY = 0; // TRACKER FOR AUTO COLLAPSE
+let renderScheduled = false;
+let excelPreviewRows = [], excelHeaders = [];
 
+// ── Helpers ──────────────────────────────────────────────────────
 const toTitleCase = s => s.toLowerCase().split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
 
-function toggleTheme(){
-    const d = document.documentElement.classList.toggle('dark');
-    localStorage.theme = d ? 'dark' : 'light';
-    themeIcon.textContent = d ? '☀️' : '🌙';
-}
-if(localStorage.theme === 'light') document.documentElement.classList.remove('dark');
-
-function toggleAdmin(){
-    const p = prompt("Enter Admin Key:");
-    if(p && btoa(p) === ADMIN_KEY_ENCODED){ isAdmin = true; updateUI(); }
-}
-function logout(){ isAdmin = false; updateUI(); }
-
-function updateUI(){
-    adminPanel.classList.toggle('hidden', !isAdmin);
-    adminTools.classList.toggle('hidden', !isAdmin);
-    statsPanel.classList.toggle('hidden', !isAdmin);
-    adminBtn.classList.toggle('hidden', isAdmin);
-    modeIndicator.textContent = isAdmin ? "ADMIN AUTHORIZED" : "STAFF VIEW MODE";
-    render();
+function showToast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), duration);
 }
 
+// ── Theme ────────────────────────────────────────────────────────
+function toggleTheme() {
+  const d = document.documentElement.classList.toggle('dark');
+  localStorage.theme = d ? 'dark' : 'light';
+  updateThemeBtn(d);
+}
+function updateThemeBtn(isDark) {
+  document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+  document.getElementById('themeLabel').textContent = isDark ? 'Light Mode' : 'Dark Mode';
+}
+if (localStorage.theme === 'light') document.documentElement.classList.remove('dark');
+updateThemeBtn(document.documentElement.classList.contains('dark'));
+
+// ── Drawer ───────────────────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('sideDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('sideDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+}
+
+// ── Login Modal ──────────────────────────────────────────────────
+function toggleAdmin() {
+  closeDrawer();
+  document.getElementById('loginPasswordInput').value = '';
+  document.getElementById('loginModal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('loginPasswordInput').focus(), 100);
+}
+function closeLoginModal() {
+  document.getElementById('loginModal').classList.add('hidden');
+}
+function toggleLoginVisibility() {
+  const inp = document.getElementById('loginPasswordInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function confirmLogin() {
+  const val = document.getElementById('loginPasswordInput').value;
+  if (val && btoa(val) === storedPwEncoded) {
+    isAdmin = true;
+    closeLoginModal();
+    updateUI();
+  } else {
+    document.getElementById('loginPasswordInput').value = '';
+    document.getElementById('loginPasswordInput').placeholder = 'Wrong password!';
+    setTimeout(()=>document.getElementById('loginPasswordInput').placeholder='Enter password', 1500);
+  }
+}
+function logout() { isAdmin = false; updateUI(); }
+
+// ── Change Password ──────────────────────────────────────────────
+function togglePwVis(inputId, btnId) {
+  const inp = document.getElementById(inputId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function openChangePwModal() {
+  ['pwCurrent','pwNew','pwConfirm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('changePwModal').classList.remove('hidden');
+}
+function closeChangePwModal() { document.getElementById('changePwModal').classList.add('hidden'); }
+function confirmChangePw() {
+  const cur = document.getElementById('pwCurrent').value;
+  const nw = document.getElementById('pwNew').value;
+  const conf = document.getElementById('pwConfirm').value;
+  if (!cur || !nw || !conf) { showToast('⚠️ Fill all fields'); return; }
+  if (btoa(cur) !== storedPwEncoded) { showToast('❌ Current password wrong'); return; }
+  if (nw !== conf) { showToast('❌ New passwords do not match'); return; }
+  if (nw.length < 4) { showToast('⚠️ Password too short (min 4 chars)'); return; }
+  storedPwEncoded = btoa(nw);
+  localStorage.setItem('ht_pw', storedPwEncoded);
+  closeChangePwModal();
+  showToast('✅ Password changed successfully');
+}
+
+// ── Brand / Category Management ──────────────────────────────────
+function saveBrands() { localStorage.setItem('ht_brands', JSON.stringify(BRANDS)); }
+function saveCategories() { localStorage.setItem('ht_categories', JSON.stringify(CATEGORIES)); }
+
+function addBrand() {
+  const inp = document.getElementById('newBrandInput');
+  const val = inp.value.trim().toUpperCase();
+  if (!val) return;
+  if (BRANDS.includes(val)) { showToast('Brand already exists'); return; }
+  BRANDS.push(val);
+  saveBrands();
+  inp.value = '';
+  renderBrandList();
+  populateSelects();
+  showToast(`✅ Brand "${val}" added`);
+}
+
+function deleteBrand(b) {
+  if (!confirm(`Delete brand "${b}"? This does NOT delete existing items.`)) return;
+  BRANDS = BRANDS.filter(x=>x!==b);
+  saveBrands();
+  renderBrandList();
+  populateSelects();
+}
+
+function addCategory() {
+  const inp = document.getElementById('newCatInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  if (CATEGORIES.map(c=>c.toLowerCase()).includes(val.toLowerCase())) { showToast('Category already exists'); return; }
+  CATEGORIES.push(val);
+  saveCategories();
+  inp.value = '';
+  renderCategoryList();
+  populateSelects();
+  showToast(`✅ Category "${val}" added`);
+}
+
+function deleteCategory(c) {
+  if (!confirm(`Delete category "${c}"? This does NOT delete existing items.`)) return;
+  CATEGORIES = CATEGORIES.filter(x=>x!==c);
+  saveCategories();
+  renderCategoryList();
+  populateSelects();
+}
+
+function renderBrandList() {
+  document.getElementById('brandList').innerHTML = BRANDS.map(b=>`
+    <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700">
+      <span class="text-xs font-bold text-orange-600 uppercase">${b}</span>
+      <button onclick="deleteBrand('${b}')" class="text-red-400 hover:text-red-600 font-black text-xs px-2">✕</button>
+    </div>`).join('');
+}
+
+function renderCategoryList() {
+  document.getElementById('categoryList').innerHTML = CATEGORIES.map(c=>`
+    <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700">
+      <span class="text-xs font-bold text-slate-600 dark:text-slate-300">${c}</span>
+      <button onclick="deleteCategory('${escapeQ(c)}')" class="text-red-400 hover:text-red-600 font-black text-xs px-2">✕</button>
+    </div>`).join('');
+}
+
+function escapeQ(s) { return s.replace(/'/g, "\\'"); }
+
+// ── updateUI ─────────────────────────────────────────────────────
+function updateUI() {
+  const ap = document.getElementById('adminPanel');
+  const at = document.getElementById('adminTools');
+  const sp = document.getElementById('statsPanel');
+  const fb = document.getElementById('floatingMenuBtn');
+  const da = document.getElementById('drawerAdminInfo');
+  const lb = document.getElementById('loginDrawerBtn');
+
+  ap.classList.toggle('hidden', !isAdmin);
+  at.classList.toggle('hidden', !isAdmin);
+  sp.classList.toggle('hidden', !isAdmin);
+  fb.style.display = 'flex';
+
+  lb.classList.toggle('hidden', isAdmin);
+  da.classList.toggle('hidden', !isAdmin);
+  if (isAdmin) da.classList.remove('hidden');
+
+  document.getElementById('modeIndicator').textContent = isAdmin ? "ADMIN AUTHORIZED" : "STAFF VIEW MODE";
+
+  if (isAdmin) { renderBrandList(); renderCategoryList(); }
+  populateSelects();
+  render();
+}
+
+// ── Populate selects ─────────────────────────────────────────────
+function populateSelects() {
+  document.getElementById('modelBrand').innerHTML = BRANDS.map(b=>`<option>${b}</option>`).join('');
+  document.getElementById('modelCategory').innerHTML = CATEGORIES.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('filterBrand').innerHTML = `<option value="ALL">All Brands</option>`+BRANDS.map(b=>`<option>${b}</option>`).join('');
+  document.getElementById('filterCategory').innerHTML = `<option value="ALL">All Categories</option>`+CATEGORIES.map(c=>`<option>${c}</option>`).join('');
+}
+
+// ── Bulk Color ───────────────────────────────────────────────────
 function setBulkColor(color) {
-    bulkColor = color;
-    bulkColorBlue.classList.toggle('border-blue-600', color === 'blue');
-    bulkColorBlue.classList.toggle('bg-blue-600/10', color === 'blue');
-    bulkColorGreen.classList.toggle('border-emerald-600', color === 'green');
-    bulkColorGreen.classList.toggle('bg-emerald-600/10', color === 'green');
+  bulkColor = color;
+  document.getElementById('bulkColorBlue').classList.toggle('border-blue-600', color==='blue');
+  document.getElementById('bulkColorBlue').classList.toggle('bg-blue-600/10', color==='blue');
+  document.getElementById('bulkColorGreen').classList.toggle('border-emerald-600', color==='green');
+  document.getElementById('bulkColorGreen').classList.toggle('bg-emerald-600/10', color==='green');
 }
 
+// ── Action Modal ─────────────────────────────────────────────────
 function openActionModal(title, defaultValue, callback) {
-    modalTitle.textContent = title;
-    modalInput.value = defaultValue;
-    modalCallback = callback;
-    actionModal.classList.remove('hidden');
-    modalInput.focus();
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalInput').value = defaultValue;
+  modalCallback = callback;
+  document.getElementById('actionModal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('modalInput').focus(), 50);
 }
-function closeActionModal() { actionModal.classList.add('hidden'); modalCallback = null; }
-function confirmModalAction() {
-    if(modalCallback) modalCallback(modalInput.value);
-    closeActionModal();
-}
+function closeActionModal() { document.getElementById('actionModal').classList.add('hidden'); modalCallback=null; }
+function confirmModalAction() { if(modalCallback) modalCallback(document.getElementById('modalInput').value); closeActionModal(); }
 
-function openColorPicker(id) {
-    if(!isAdmin) return;
-    currentEditingId = id;
-    colorPickerModal.classList.remove('hidden');
-}
-function closeColorPicker() { colorPickerModal.classList.add('hidden'); }
+// ── Color Picker ─────────────────────────────────────────────────
+function openColorPicker(id) { if(!isAdmin) return; currentEditingId=id; document.getElementById('colorPickerModal').classList.remove('hidden'); }
+function closeColorPicker() { document.getElementById('colorPickerModal').classList.add('hidden'); }
 function setPriceColor(color) {
-    const item = data.find(i => i.id == currentEditingId);
-    if(item) { item.color = color; save(); }
-    closeColorPicker();
+  const item = data.find(i=>i.id==currentEditingId);
+  if(item) { item.color=color; save(); }
+  closeColorPicker();
 }
 
-function addOrUpdate(){
-    const bulk = bulkInput.value;
-    const brand = modelBrand.value;
-    const cat = modelCategory.value;
-    bulk.split('\n').forEach(line=>{
-        if(!line.trim()) return;
-        let [rawN, price="N/A"] = line.split(',').map(s=>s.trim());
-        const dName = toTitleCase(rawN);
-        const existing = data.find(i => i.brand===brand && i.cat===cat && i.name.toLowerCase()===rawN.toLowerCase());
-        if(existing){ 
-            existing.price = price; 
-            existing.name = dName;
-            existing.color = bulkColor;
-        } else {
-            data.push({id:Date.now()+Math.random(), name:dName, price, cat, brand, inStock:true, color:bulkColor});
-        }
-    });
-    bulkInput.value=''; save();
+// ── Manual Add / Update ──────────────────────────────────────────
+function addOrUpdate() {
+  const bulk = document.getElementById('bulkInput').value;
+  const brand = document.getElementById('modelBrand').value;
+  const cat = document.getElementById('modelCategory').value;
+  let count = 0;
+  bulk.split('\n').forEach(line=>{
+    if(!line.trim()) return;
+    let [rawN, price="N/A"] = line.split(',').map(s=>s.trim());
+    const dName = toTitleCase(rawN);
+    const existing = data.find(i=>i.brand===brand&&i.cat===cat&&i.name.toLowerCase()===rawN.toLowerCase());
+    if(existing){ existing.price=price; existing.name=dName; existing.color=bulkColor; }
+    else { data.push({id:Date.now()+Math.random(),name:dName,price,cat,brand,inStock:true,color:bulkColor}); }
+    count++;
+  });
+  document.getElementById('bulkInput').value='';
+  save();
+  showToast(`✅ ${count} item(s) saved`);
 }
 
 function deleteItem(id) {
-    if(confirm("Delete this item?")) {
-        data = data.filter(i => i.id != id);
-        save();
-    }
+  if(confirm("Delete this item?")) { data=data.filter(i=>i.id!=id); save(); }
 }
 
-function save(){ localStorage.setItem('ht_vault_v2', JSON.stringify(data)); render(); }
+function save() { localStorage.setItem('ht_vault_v2', JSON.stringify(data)); scheduleRender(); }
 
-// UPDATED: AUTO COLLAPSE OTHERS & TRACK SCROLL POSITION
-function toggleModel(key){
-    if(expandedModels.has(key)){
-        expandedModels.clear();
-    } else {
-        expandedModels.clear(); 
-        expandedModels.add(key);
-        startScrollY = window.scrollY;
-    }
-    render();
+// ── Performance ──────────────────────────────────────────────────
+function scheduleRender() {
+  if(!renderScheduled) { renderScheduled=true; requestAnimationFrame(()=>{ renderScheduled=false; render(); }); }
 }
 
-// NEW: COLLAPSE ON 300PX SCROLL
-window.addEventListener('scroll', () => {
-    if (expandedModels.size > 0) {
-        if (Math.abs(window.scrollY - startScrollY) > 300) {
-            expandedModels.clear();
-            render();
-        }
-    }
-}, { passive: true });
-
-function render(){
-    if(!modelBrand.innerHTML){
-        modelBrand.innerHTML = BRANDS.map(b=>`<option>${b}</option>`).join('');
-        modelCategory.innerHTML = CATEGORIES.map(c=>`<option>${c}</option>`).join('');
-        filterBrand.innerHTML = `<option value="ALL">ALL BRANDS</option>`+BRANDS.map(b=>`<option>${b}</option>`).join('');
-    }
-
-    const rawQuery = searchInput.value.toLowerCase().trim();
-    const searchTerms = rawQuery.split(' ').filter(Boolean);
-    const brandFilter = filterBrand.value;
-
-    windowFiltered = data.filter(i=>{
-        const blob = `${i.brand} ${i.name} ${i.cat}`.toLowerCase();
-        if(rawQuery === "out") return !i.inStock && (brandFilter === "ALL" || i.brand === brandFilter);
-        return searchTerms.every(t=>blob.includes(t)) && (brandFilter==="ALL"||i.brand===brandFilter);
-    });
-
-    if(isAdmin){
-        statTotal.textContent = windowFiltered.length;
-        statLow.textContent = windowFiltered.filter(i=>!i.inStock).length;
-        statBrands.textContent = new Set(windowFiltered.map(i=>i.brand)).size;
-    }
-
-    const groups = windowFiltered.reduce((acc,i)=>{
-        const key = `${i.brand}||${i.name}`;
-        (acc[key]=acc[key]||[]).push(i);
-        return acc;
-    },{});
-
-    let html='';
-    Object.keys(groups).sort().forEach(key=>{
-        const [brand, model] = key.split('||');
-        const items = groups[key];
-        const isOpen = expandedModels.has(key);
-        html+= `
-        <div class="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-            <div onclick="toggleModel('${key}')" class="group-header p-5 flex justify-between items-center select-none">
-                <div class="flex flex-col">
-                    <span class="text-[9px] font-black text-orange-500 bg-orange-100 dark:bg-orange-900/20 px-2 py-0.5 rounded w-fit uppercase mb-1">${brand}</span>
-                    <h3 class="text-lg font-bold dark:text-white model-name" data-key="${key}">${model} <span class="text-xs text-slate-400 font-medium">(${items.length})</span></h3>
-                </div>
-                <span class="transform transition-transform ${isOpen?'rotate-180':''} opacity-30">▼</span>
-            </div>
-            <div class="${isOpen?'block':'hidden'} bg-slate-50 dark:bg-slate-950/50 border-t dark:border-slate-800">
-                <table class="w-full text-sm">
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                        ${items.map(item=>{
-                            const pColor = item.color==='green' ? 'text-green-600' : 'text-blue-600';
-                            const isGreenHidden = !isAdmin && item.color==='green';
-                            const pDisp = isGreenHidden ? 'N/A' : (item.price && item.price!=='N/A'?`৳${item.price}`:'N/A');
-                            return `<tr>
-                                <td class="px-6 py-4 font-bold text-[11px] uppercase text-slate-500">${item.cat}</td>
-                                <td onclick="toggleStock(${item.id})" class="px-2 py-4 text-center text-[10px] font-black cursor-pointer">
-                                    ${item.inStock?'<span class="text-emerald-500">IN STOCK</span>':'<span class="text-red-500">STOCK OUT</span>'}
-                                </td>
-                                <td class="px-4 py-4 text-right font-mono font-bold ${pColor} price-cell" data-id="${item.id}" onclick="${isAdmin ? 'editPriceModal('+item.id+')' : ''}">
-                                    ${pDisp}
-                                </td>
-                                ${isAdmin ? `<td class="pr-6 py-4 w-8 text-right"><button onclick="deleteItem(${item.id})" class="text-red-500/40 hover:text-red-600 font-bold">✕</button></td>` : ''}
-                            </tr>`;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-    });
-
-    vaultContent.innerHTML = html;
-    emptyState.classList.toggle('hidden', windowFiltered.length > 0);
-
-    // Re-attach long-press handlers
-    document.querySelectorAll('.model-name').forEach(el=> addLongPress(el, () => {
-        if(!isAdmin) return;
-        const [brand, oldN] = el.dataset.key.split('||');
-        openActionModal("Rename Model", oldN, (newN) => {
-            if(newN && newN !== oldN){
-                data.forEach(i => { if(i.brand === brand && i.name === oldN) i.name = toTitleCase(newN); });
-                save();
-            }
-        });
-    }));
-
-    document.querySelectorAll('.price-cell').forEach(td => addLongPress(td, () => openColorPicker(Number(td.dataset.id))));
+// ── Search + inactivity ──────────────────────────────────────────
+function onSearchInput() {
+  resetInactivityTimer();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(render, 120);
 }
 
-/**
- * MASTER MOBILE LONG-PRESS HANDLER
- */
-function addLongPress(el, callback) {
-    let timer;
-    let isMoving = false;
-    let startX, startY;
+function resetInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  clearInterval(countdownInterval);
+  document.getElementById('countdownRing').style.display = 'none';
 
-    const start = (e) => {
-        if (!isAdmin) return;
-        isMoving = false;
-        const touch = e.touches ? e.touches[0] : e;
-        startX = touch.clientX;
-        startY = touch.clientY;
+  const hasQuery = document.getElementById('searchInput').value.trim().length > 0;
+  if (!hasQuery) return;
 
-        timer = setTimeout(() => {
-            if (!isMoving) {
-                if (navigator.vibrate) navigator.vibrate(40);
-                callback();
-            }
-        }, 700);
-    };
-
-    const move = (e) => {
-        const touch = e.touches ? e.touches[0] : e;
-        if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
-            isMoving = true;
-            clearTimeout(timer);
-        }
-    };
-
-    const cancel = () => clearTimeout(timer);
-
-    el.addEventListener('touchstart', start, { passive: false });
-    el.addEventListener('touchmove', move, { passive: true });
-    el.addEventListener('touchend', cancel);
-    el.addEventListener('mousedown', start);
-    el.addEventListener('mousemove', move);
-    el.addEventListener('mouseup', cancel);
-    el.addEventListener('mouseleave', cancel);
-    el.addEventListener('contextmenu', (e) => { if(isAdmin) e.preventDefault(); });
+  // Start countdown at 25s, show ring for last 5s
+  inactivityTimer = setTimeout(()=>{
+    startCountdownRing();
+    inactivityTimer = setTimeout(()=>{
+      document.getElementById('searchInput').value = '';
+      document.getElementById('countdownRing').style.display = 'none';
+      clearInterval(countdownInterval);
+      render();
+    }, 5000);
+  }, 25000);
 }
 
+function startCountdownRing() {
+  const ring = document.getElementById('countdownRing');
+  const circle = document.getElementById('countdownCircle');
+  const circumference = 56.5;
+  ring.style.display = 'block';
+  circle.style.strokeDashoffset = 0;
+  let elapsed = 0;
+  countdownInterval = setInterval(()=>{
+    elapsed += 100;
+    const progress = elapsed / 5000;
+    circle.style.strokeDashoffset = circumference * progress;
+    if (elapsed >= 5000) clearInterval(countdownInterval);
+  }, 100);
+}
+
+// ── Toggle ───────────────────────────────────────────────────────
+function toggleStock(id) {
+  if(isAdmin) { const i=data.find(x=>x.id==id); if(i){ i.inStock=!i.inStock; save(); } }
+}
+function toggleModel(key) {
+  if(expandedModels.has(key)) expandedModels.delete(key); else expandedModels.add(key); render();
+}
 function editPriceModal(id) {
-    const item = data.find(x=>x.id == id);
-    if(!item) return;
-    openActionModal("Edit Price", item.price, (newP) => {
-        item.price = newP.trim() || "N/A";
-        save();
-    });
+  const item=data.find(x=>x.id==id); if(!item) return;
+  openActionModal("Edit Price (৳ BDT)", item.price, (newP)=>{ item.price=newP.trim()||"N/A"; save(); });
 }
 
-function toggleStock(id){
-    if(isAdmin){
-        const i=data.find(x=>x.id == id);
-        if(i){ i.inStock=!i.inStock; save(); }
+// ── Dashboard ────────────────────────────────────────────────────
+function renderDashboard() {
+  const total = data.length;
+  const outOfStock = data.filter(i=>!i.inStock).length;
+  const brands = new Set(data.map(i=>i.brand)).size;
+
+  document.getElementById('dashTotal').textContent = total;
+  document.getElementById('dashLow').textContent = outOfStock;
+  document.getElementById('dashBrands').textContent = brands;
+
+  // Category breakdown: count unique models per category
+  const catMap = {};
+  data.forEach(item=>{
+    if(!catMap[item.cat]) catMap[item.cat] = new Set();
+    catMap[item.cat].add(`${item.brand}||${item.name}`);
+  });
+
+  const sorted = Object.entries(catMap).sort((a,b)=>b[1].size-a[1].size);
+  const listEl = document.getElementById('dashCategoryList');
+
+  if(sorted.length===0){
+    listEl.innerHTML = `<p class="text-center text-slate-400 font-bold italic text-sm py-8">No data yet</p>`;
+    return;
+  }
+
+  const maxVal = sorted[0][1].size;
+  listEl.innerHTML = sorted.map(([cat, models])=>{
+    const count = models.size;
+    const pct = maxVal > 0 ? Math.round((count/maxVal)*100) : 0;
+    return `<div class="dash-cat-row">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">${cat}</span>
+          <span class="text-sm font-black text-blue-500 ml-3 shrink-0">${count} <span class="text-[10px] text-slate-400 font-bold">models</span></span>
+        </div>
+        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
+          <div class="bg-blue-500 h-1.5 rounded-full transition-all" style="width:${pct}%"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Main Render ──────────────────────────────────────────────────
+function render() {
+  const searchInput = document.getElementById('searchInput');
+  const filterBrand = document.getElementById('filterBrand');
+  const filterCategory = document.getElementById('filterCategory');
+  const vaultContent = document.getElementById('vaultContent');
+  const emptyState = document.getElementById('emptyState');
+  const dashboard = document.getElementById('dashboard');
+
+  const rawQuery = searchInput.value.toLowerCase().trim();
+  const searchTerms = rawQuery.split(' ').filter(Boolean);
+  const brandFilter = filterBrand.value;
+  const catFilter = filterCategory.value;
+  const hasSearch = rawQuery.length > 0 || brandFilter !== 'ALL' || catFilter !== 'ALL';
+
+  // Show/hide dashboard vs results
+  if (!hasSearch) {
+    dashboard.classList.remove('hidden');
+    vaultContent.classList.add('hidden');
+    emptyState.classList.add('hidden');
+    renderDashboard();
+    if (isAdmin) {
+      document.getElementById('statTotal').textContent = data.length;
+      document.getElementById('statLow').textContent = data.filter(i=>!i.inStock).length;
+      document.getElementById('statBrands').textContent = new Set(data.map(i=>i.brand)).size;
     }
+    return;
+  }
+
+  dashboard.classList.add('hidden');
+  vaultContent.classList.remove('hidden');
+
+  windowFiltered = data.filter(i=>{
+    const blob = `${i.brand} ${i.name} ${i.cat}`.toLowerCase();
+    const brandOk = brandFilter==='ALL' || i.brand===brandFilter;
+    const catOk = catFilter==='ALL' || i.cat===catFilter;
+    if(rawQuery==='out') return !i.inStock && brandOk && catOk;
+    return searchTerms.every(t=>blob.includes(t)) && brandOk && catOk;
+  });
+
+  if(isAdmin){
+    document.getElementById('statTotal').textContent = windowFiltered.length;
+    document.getElementById('statLow').textContent = windowFiltered.filter(i=>!i.inStock).length;
+    document.getElementById('statBrands').textContent = new Set(windowFiltered.map(i=>i.brand)).size;
+  }
+
+  const groups = {};
+  for(const i of windowFiltered){
+    const key=`${i.brand}||${i.name}`;
+    (groups[key]=groups[key]||[]).push(i);
+  }
+  const keys = Object.keys(groups).sort();
+
+  if(keys.length===0){
+    vaultContent.innerHTML='';
+    emptyState.classList.remove('hidden');
+    return;
+  }
+  emptyState.classList.add('hidden');
+
+  const parts=[];
+  for(const key of keys){
+    const [brand,model]=key.split('||');
+    const items=groups[key];
+    const isOpen=expandedModels.has(key);
+    let rows='';
+    for(const item of items){
+      const pColor=item.color==='green'?'text-green-600':'text-blue-600';
+      const isGreenHidden=!isAdmin&&item.color==='green';
+      const pDisp=isGreenHidden?'N/A':(item.price&&item.price!=='N/A'?`৳${item.price}`:'N/A');
+      rows+=`<tr>
+        <td class="px-6 py-4 font-bold text-[11px] uppercase text-slate-500">${item.cat}</td>
+        <td onclick="toggleStock(${item.id})" class="px-2 py-4 text-center text-[10px] font-black cursor-pointer">
+          ${item.inStock?'<span class="text-emerald-500">IN STOCK</span>':'<span class="text-red-500">STOCK OUT</span>'}
+        </td>
+        <td class="px-4 py-4 text-right font-mono font-bold ${pColor} price-cell" data-id="${item.id}" onclick="${isAdmin?'editPriceModal('+item.id+')':''}">
+          ${pDisp}
+        </td>
+        ${isAdmin?`<td class="pr-6 py-4 w-8 text-right"><button onclick="deleteItem(${item.id})" class="text-red-500/40 hover:text-red-600 font-bold">✕</button></td>`:''}
+      </tr>`;
+    }
+    parts.push(`
+    <div class="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div onclick="toggleModel('${key}')" class="group-header p-5 flex justify-between items-center select-none">
+        <div class="flex flex-col">
+          <span class="text-[9px] font-black text-orange-500 bg-orange-100 dark:bg-orange-900/20 px-2 py-0.5 rounded w-fit uppercase mb-1">${brand}</span>
+          <h3 class="text-lg font-bold dark:text-white model-name" data-key="${key}">${model} <span class="text-xs text-slate-400 font-medium">(${items.length})</span></h3>
+        </div>
+        <span class="transform transition-transform ${isOpen?'rotate-180':''} opacity-30">▼</span>
+      </div>
+      <div class="${isOpen?'block':'hidden'} bg-slate-50 dark:bg-slate-950/50 border-t dark:border-slate-800">
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">${rows}</tbody>
+        </table>
+      </div>
+    </div>`);
+  }
+  vaultContent.innerHTML=parts.join('');
+
+  // Long-press handlers
+  document.querySelectorAll('.model-name').forEach(el=>addLongPress(el,()=>{
+    if(!isAdmin) return;
+    const [brand,oldN]=el.dataset.key.split('||');
+    openActionModal("Rename Model",oldN,(newN)=>{
+      if(newN&&newN!==oldN){ data.forEach(i=>{if(i.brand===brand&&i.name===oldN)i.name=toTitleCase(newN);}); save(); }
+    });
+  }));
+  document.querySelectorAll('.price-cell').forEach(td=>addLongPress(td,()=>openColorPicker(Number(td.dataset.id))));
 }
 
-function debouncedRender(){ clearTimeout(searchTimer); searchTimer=setTimeout(render,150); }
-
-function exportExcel(){
-    const rows = windowFiltered.map(i=>({ Brand: i.brand, Model: i.name, Category: i.cat, Stock: i.inStock ? "YES" : "NO", Price: i.price }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Vault");
-    XLSX.writeFile(wb, `HT_Export.xlsx`);
+// ── Long Press ───────────────────────────────────────────────────
+function addLongPress(el, callback) {
+  let timer, isMoving=false, startX, startY;
+  const start=(e)=>{
+    if(!isAdmin) return;
+    isMoving=false;
+    const touch=e.touches?e.touches[0]:e;
+    startX=touch.clientX; startY=touch.clientY;
+    timer=setTimeout(()=>{ if(!isMoving){ if(navigator.vibrate)navigator.vibrate(40); callback(); } },700);
+  };
+  const move=(e)=>{
+    const touch=e.touches?e.touches[0]:e;
+    if(Math.abs(touch.clientX-startX)>10||Math.abs(touch.clientY-startY)>10){ isMoving=true; clearTimeout(timer); }
+  };
+  const cancel=()=>clearTimeout(timer);
+  el.addEventListener('touchstart',start,{passive:false});
+  el.addEventListener('touchmove',move,{passive:true});
+  el.addEventListener('touchend',cancel);
+  el.addEventListener('mousedown',start);
+  el.addEventListener('mousemove',move);
+  el.addEventListener('mouseup',cancel);
+  el.addEventListener('mouseleave',cancel);
+  el.addEventListener('contextmenu',(e)=>{if(isAdmin)e.preventDefault();});
 }
 
-function downloadBackup(){
-    const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-    const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`HT_BACKUP.json`; a.click();
+// ── Export / Backup ──────────────────────────────────────────────
+function exportExcel() {
+  const toExport = windowFiltered.length > 0 ? windowFiltered : data;
+  const rows=toExport.map(i=>({Brand:i.brand,Model:i.name,Category:i.cat,Stock:i.inStock?"YES":"NO",Price:i.price?`৳${i.price}`:'N/A'}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Vault");
+  XLSX.writeFile(wb,`HT_Export.xlsx`);
+}
+function downloadBackup() {
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`HT_BACKUP.json`; a.click();
+}
+function importBackup(e) {
+  const r=new FileReader();
+  r.onload=()=>{ try{ data=JSON.parse(r.result); save(); showToast('✅ JSON Backup Imported!'); }catch(e){ alert("Error reading file."); } };
+  r.readAsText(e.target.files[0]);
 }
 
-function importBackup(e){
-    const r = new FileReader();
-    r.onload=()=>{ try { data=JSON.parse(r.result); save(); alert("Imported!"); } catch(e){ alert("Error."); } };
-    r.readAsText(e.target.files[0]);
+// ── Excel Import ─────────────────────────────────────────────────
+function handleDragOver(e) { e.preventDefault(); document.getElementById('excelDropZone').classList.add('drag-over'); }
+function handleDragLeave(e) { document.getElementById('excelDropZone').classList.remove('drag-over'); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('excelDropZone').classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f)processExcelFile(f); }
+function handleExcelFile(e) { const f=e.target.files[0]; if(f)processExcelFile(f); e.target.value=''; }
+
+function processExcelFile(file) {
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows||rows.length===0){ showToast('⚠️ No data found in file'); return; }
+      excelPreviewRows=rows; excelHeaders=Object.keys(rows[0]);
+      openExcelPreview();
+    }catch(err){ alert("Could not read file. Make sure it's a valid Excel or CSV."); }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
+function openExcelPreview() {
+  document.getElementById('excelPreviewCount').textContent=`${excelPreviewRows.length} rows found`;
+  const hints=['category','brand','model','price'];
+  ['mapCat','mapBrand','mapModel','mapPrice'].forEach((selId,i)=>{
+    const sel=document.getElementById(selId);
+    sel.innerHTML=excelHeaders.map(h=>`<option value="${h}">${h}</option>`).join('');
+    const match=excelHeaders.find(h=>h.toLowerCase().includes(hints[i]));
+    if(match) sel.value=match;
+  });
+  const preview=excelPreviewRows.slice(0,5);
+  let tHtml=`<table class="w-full"><thead><tr>${excelHeaders.map(h=>`<th class="p-2 text-left text-[10px] font-black text-slate-500 uppercase">${h}</th>`).join('')}</tr></thead><tbody>`;
+  preview.forEach(row=>{ tHtml+=`<tr class="border-t border-slate-200 dark:border-slate-700">${excelHeaders.map(h=>`<td class="p-2 text-[10px] text-slate-600 dark:text-slate-300">${row[h]||''}</td>`).join('')}</tr>`; });
+  tHtml+='</tbody></table>';
+  document.getElementById('excelPreviewTable').innerHTML=tHtml;
+  document.getElementById('excelPreviewModal').classList.remove('hidden');
+}
+
+function closeExcelPreview() { document.getElementById('excelPreviewModal').classList.add('hidden'); excelPreviewRows=[]; excelHeaders=[]; }
+
+function confirmExcelImport() {
+  const catCol=document.getElementById('mapCat').value;
+  const brandCol=document.getElementById('mapBrand').value;
+  const modelCol=document.getElementById('mapModel').value;
+  const priceCol=document.getElementById('mapPrice').value;
+  let added=0, updated=0, skipped=0;
+
+  excelPreviewRows.forEach(row=>{
+    const rawCat=String(row[catCol]||'').trim();
+    const rawBrand=String(row[brandCol]||'').trim().toUpperCase();
+    const rawModel=String(row[modelCol]||'').trim();
+    const rawPrice=String(row[priceCol]||'').trim()||'N/A';
+    if(!rawBrand||!rawModel||!rawCat){ skipped++; return; }
+    const dName=toTitleCase(rawModel);
+    const existing=data.find(i=>i.brand===rawBrand&&i.cat.toLowerCase()===rawCat.toLowerCase()&&i.name.toLowerCase()===rawModel.toLowerCase());
+    if(existing){ existing.price=rawPrice; existing.name=dName; existing.color='blue'; updated++; }
+    else{ data.push({id:Date.now()+Math.random(),name:dName,price:rawPrice,cat:rawCat,brand:rawBrand,inStock:true,color:'blue'}); added++; }
+  });
+
+  save();
+  closeExcelPreview();
+  showToast(`✅ ${added} added, ${updated} updated${skipped?', '+skipped+' skipped':''}`, 3500);
+}
+
+// ── Init ─────────────────────────────────────────────────────────
 updateUI();
 </script>
-
-<script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Vault Service Worker Active'))
-            .catch(err => console.log('Service Worker Error', err));
-    });
-}
-</script>
-
 </body>
 </html>
