@@ -100,21 +100,36 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 <!-- Drawer overlay -->
 <div id="drawerOverlay" onclick="closeDrawer()"></div>
 
-<!-- Side Drawer (Staff View: theme + login) -->
+<!-- Side Drawer -->
 <div id="sideDrawer">
   <p class="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase mb-2">Menu</p>
+
+  <!-- Theme toggle -->
   <button onclick="toggleTheme()" id="themeDrawerBtn"
     class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-bold text-sm text-left">
     <span id="themeIcon">🌙</span> <span id="themeLabel">Dark Mode</span>
   </button>
+
+  <!-- Browse section button (both staff & admin) -->
+  <button onclick="openBrowse(); closeDrawer();"
+    class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-bold text-sm text-left">
+    🗂️ <span>Browse All</span>
+  </button>
+
+  <!-- Staff: Login -->
   <button id="loginDrawerBtn" onclick="toggleAdmin()"
     class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-blue-600 text-white font-black text-sm uppercase tracking-widest">
     🔑 Admin Login
   </button>
+
+  <!-- Admin-only items -->
   <div id="drawerAdminInfo" class="hidden flex-col gap-2">
     <div class="px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-[11px] font-black text-emerald-600 uppercase tracking-wider">✓ Admin Authorized</div>
+    <button onclick="openManageModal(); closeDrawer();" class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-bold text-sm text-left">⚙️ <span>Manage Brands & Categories</span></button>
+    <button onclick="openChangePwModal(); closeDrawer();" class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-bold text-sm text-left">🔑 <span>Change Password</span></button>
     <button onclick="logout(); closeDrawer();" class="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 font-black text-sm text-red-600 uppercase">✕ Logout</button>
   </div>
+
   <div class="mt-auto text-[9px] text-slate-300 dark:text-slate-600 font-bold text-center tracking-widest uppercase">HT Vault v2.8.0</div>
 </div>
 
@@ -289,30 +304,6 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
     </label>
   </div>
 
-  <!-- Brand Management -->
-  <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
-    <p class="text-[10px] font-black text-slate-400 uppercase mb-3 ml-1">🏷️ Manage Brands</p>
-    <div class="flex gap-2 mb-3">
-      <input type="text" id="newBrandInput" placeholder="New brand name..." class="flex-1 bg-slate-100 dark:bg-slate-800 p-3 rounded-xl outline-none font-bold text-sm border-2 border-transparent focus:border-blue-500">
-      <button onclick="addBrand()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-sm">Add</button>
-    </div>
-    <div id="brandList" class="max-h-36 overflow-y-auto flex flex-col gap-1"></div>
-  </div>
-
-  <!-- Category Management -->
-  <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
-    <p class="text-[10px] font-black text-slate-400 uppercase mb-3 ml-1">📂 Manage Categories</p>
-    <div class="flex gap-2 mb-3">
-      <input type="text" id="newCatInput" placeholder="New category name..." class="flex-1 bg-slate-100 dark:bg-slate-800 p-3 rounded-xl outline-none font-bold text-sm border-2 border-transparent focus:border-blue-500">
-      <button onclick="addCategory()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-sm">Add</button>
-    </div>
-    <div id="categoryList" class="max-h-36 overflow-y-auto flex flex-col gap-1"></div>
-  </div>
-
-  <!-- Change Password -->
-  <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
-    <button onclick="openChangePwModal()" class="w-full py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-sm uppercase tracking-wider">🔑 Change Password</button>
-  </div>
 </div>
 
 <!-- ════════════════════ SEARCH BAR ════════════════════ -->
@@ -329,8 +320,8 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
   </div>
   <!-- Compact filters row -->
   <div class="grid grid-cols-2 gap-2">
-    <select id="filterBrand" onchange="render()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl font-black text-orange-600 dark:text-orange-500 uppercase text-[11px] outline-none"></select>
-    <select id="filterCategory" onchange="render()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl font-black text-blue-600 dark:text-blue-400 uppercase text-[11px] outline-none"></select>
+    <select id="filterBrand" onchange="onFilterChange()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl font-black text-orange-600 dark:text-orange-500 uppercase text-[11px] outline-none"></select>
+    <select id="filterCategory" onchange="onFilterChange()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl font-black text-blue-600 dark:text-blue-400 uppercase text-[11px] outline-none"></select>
   </div>
 </div>
 
@@ -363,6 +354,52 @@ body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparen
 <!-- ════════════════════ VAULT CONTENT ════════════════════ -->
 <div id="vaultContent" class="w-full max-w-xl space-y-3 pb-24"></div>
 <div id="emptyState" class="hidden p-20 text-center text-slate-400 font-bold italic">No results match your search.</div>
+
+<!-- ════════════════════ MANAGE MODAL (Brand & Category) ════════════════════ -->
+<div id="manageModal" class="hidden fixed inset-0 z-[145] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+  <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[28px] p-6 border border-slate-200 dark:border-slate-800 shadow-2xl modal-animate max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-5">
+      <h4 class="text-xs font-black tracking-widest text-slate-400 uppercase">⚙️ Manage</h4>
+      <button onclick="closeManageModal()" class="text-slate-400 font-black text-lg">✕</button>
+    </div>
+
+    <!-- Brands -->
+    <div class="mb-5">
+      <p class="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">🏷️ Brands</p>
+      <div class="flex gap-2 mb-2">
+        <input type="text" id="newBrandInput" placeholder="New brand..." class="flex-1 bg-slate-100 dark:bg-slate-800 p-3 rounded-xl outline-none font-bold text-sm border-2 border-transparent focus:border-blue-500">
+        <button onclick="addBrand()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-sm">Add</button>
+      </div>
+      <div id="brandList" class="max-h-40 overflow-y-auto flex flex-col gap-1"></div>
+    </div>
+
+    <!-- Categories -->
+    <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+      <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">📂 Categories</p>
+      <div class="flex gap-2 mb-2">
+        <input type="text" id="newCatInput" placeholder="New category..." class="flex-1 bg-slate-100 dark:bg-slate-800 p-3 rounded-xl outline-none font-bold text-sm border-2 border-transparent focus:border-blue-500">
+        <button onclick="addCategory()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-sm">Add</button>
+      </div>
+      <div id="categoryList" class="max-h-40 overflow-y-auto flex flex-col gap-1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ BROWSE PANEL ════════════════════ -->
+<div id="browsePanel" class="hidden fixed inset-0 z-[160] bg-slate-50 dark:bg-slate-950 flex flex-col">
+  <!-- Browse Header -->
+  <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-5 py-4 flex items-center gap-3 shadow-sm">
+    <button id="browseBackBtn" onclick="browseBack()" class="text-blue-600 font-black text-sm hidden">← Back</button>
+    <div class="flex-1">
+      <h2 id="browseTitleText" class="text-base font-black text-slate-800 dark:text-white">Browse All</h2>
+      <p id="browseCrumb" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider"></p>
+    </div>
+    <button onclick="closeBrowse()" class="text-slate-400 font-black text-lg">✕</button>
+  </div>
+
+  <!-- Browse Content -->
+  <div id="browseContent" class="flex-1 overflow-y-auto p-4 space-y-2 pb-24"></div>
+</div>
 
 <script>
 // ── PWA ──────────────────────────────────────────────────────────
@@ -544,6 +581,138 @@ function renderCategoryList() {
 
 function escapeQ(s) { return s.replace(/'/g, "\\'"); }
 
+// ── Filter Change ────────────────────────────────────────────────
+function onFilterChange() {
+  clearTimeout(searchTimer);
+  render();
+}
+
+// ── Manage Modal ─────────────────────────────────────────────────
+function openManageModal() {
+  renderBrandList();
+  renderCategoryList();
+  document.getElementById('manageModal').classList.remove('hidden');
+}
+function closeManageModal() { document.getElementById('manageModal').classList.add('hidden'); }
+
+// ── Browse Panel ─────────────────────────────────────────────────
+let browseLevel = 'categories'; // 'categories' | 'brands' | 'models'
+let browseCat = null;
+let browseBrand = null;
+
+function openBrowse() {
+  browseLevel = 'categories';
+  browseCat = null;
+  browseBrand = null;
+  renderBrowse();
+  document.getElementById('browsePanel').classList.remove('hidden');
+}
+function closeBrowse() {
+  document.getElementById('browsePanel').classList.add('hidden');
+}
+function browseBack() {
+  if(browseLevel === 'models') { browseLevel = 'brands'; browseBrand = null; }
+  else if(browseLevel === 'brands') { browseLevel = 'categories'; browseCat = null; }
+  renderBrowse();
+}
+
+function renderBrowse() {
+  const titleEl = document.getElementById('browseTitleText');
+  const crumbEl = document.getElementById('browseCrumb');
+  const backBtn = document.getElementById('browseBackBtn');
+  const content = document.getElementById('browseContent');
+
+  backBtn.classList.toggle('hidden', browseLevel === 'categories');
+
+  if(browseLevel === 'categories') {
+    titleEl.textContent = 'Browse All';
+    crumbEl.textContent = '';
+    // Build category list with item counts
+    const catMap = {};
+    data.forEach(i => {
+      if(!catMap[i.cat]) catMap[i.cat] = { brands: new Set(), models: new Set() };
+      catMap[i.cat].brands.add(i.brand);
+      catMap[i.cat].models.add(`${i.brand}||${i.name}`);
+    });
+    const cats = Object.keys(catMap).sort();
+    if(cats.length === 0) { content.innerHTML = '<p class="text-center text-slate-400 font-bold italic text-sm py-16">No data yet</p>'; return; }
+    content.innerHTML = cats.map(cat => {
+      const info = catMap[cat];
+      return `<div onclick="browseDrillCat('${escapeQ(cat)}')"
+        class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 px-5 py-4 flex items-center justify-between cursor-pointer hover:border-blue-400 transition-all shadow-sm">
+        <div>
+          <p class="font-black text-sm text-slate-800 dark:text-white">${cat}</p>
+          <p class="text-[10px] text-slate-400 font-bold mt-0.5">${info.brands.size} brand${info.brands.size!==1?'s':''} · ${info.models.size} model${info.models.size!==1?'s':''}</p>
+        </div>
+        <span class="text-slate-300 dark:text-slate-600 font-black">›</span>
+      </div>`;
+    }).join('');
+
+  } else if(browseLevel === 'brands') {
+    titleEl.textContent = browseCat;
+    crumbEl.textContent = 'Categories → ' + browseCat;
+    const brandMap = {};
+    data.filter(i=>i.cat.toLowerCase()===browseCat.toLowerCase()).forEach(i=>{
+      if(!brandMap[i.brand]) brandMap[i.brand] = new Set();
+      brandMap[i.brand].add(i.name);
+    });
+    const brands = Object.keys(brandMap).sort();
+    if(brands.length === 0) { content.innerHTML = '<p class="text-center text-slate-400 font-bold italic text-sm py-16">No brands found</p>'; return; }
+    content.innerHTML = brands.map(brand => {
+      const count = brandMap[brand].size;
+      return `<div onclick="browseDrillBrand('${escapeQ(brand)}')"
+        class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 px-5 py-4 flex items-center justify-between cursor-pointer hover:border-orange-400 transition-all shadow-sm">
+        <div>
+          <p class="font-black text-sm text-orange-600 uppercase">${brand}</p>
+          <p class="text-[10px] text-slate-400 font-bold mt-0.5">${count} model${count!==1?'s':''}</p>
+        </div>
+        <span class="text-slate-300 dark:text-slate-600 font-black">›</span>
+      </div>`;
+    }).join('');
+
+  } else if(browseLevel === 'models') {
+    titleEl.textContent = browseBrand;
+    crumbEl.textContent = browseCat + ' → ' + browseBrand;
+    const items = data.filter(i=>i.brand===browseBrand && i.cat.toLowerCase()===browseCat.toLowerCase());
+    // Group by model name
+    const modelMap = {};
+    items.forEach(i => { (modelMap[i.name]=modelMap[i.name]||[]).push(i); });
+    const models = Object.keys(modelMap).sort();
+    if(models.length === 0) { content.innerHTML = '<p class="text-center text-slate-400 font-bold italic text-sm py-16">No models found</p>'; return; }
+    content.innerHTML = models.map(modelName => {
+      const mItems = modelMap[modelName];
+      const rows = mItems.map(item => {
+        const isGreenHidden = !isAdmin && item.color === 'green';
+        const pDisp = isGreenHidden ? 'N/A' : (item.price && item.price !== 'N/A' ? `৳${item.price}` : 'N/A');
+        const pColor = item.color === 'green' ? (isAdmin ? 'text-green-600' : 'text-slate-400') : 'text-blue-600';
+        const stockColor = item.inStock ? 'text-emerald-500' : 'text-red-500';
+        return `<div class="flex items-center justify-between py-3 border-t border-slate-100 dark:border-slate-800 px-5">
+          <span class="text-[11px] font-black uppercase text-slate-400">${item.cat}</span>
+          <span class="text-[10px] font-black ${stockColor}">${item.inStock?'IN STOCK':'STOCK OUT'}</span>
+          <span class="font-mono font-black text-sm ${pColor}">${pDisp}</span>
+        </div>`;
+      }).join('');
+      return `<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div class="px-5 py-4">
+          <p class="font-black text-sm text-slate-800 dark:text-white">${modelName} <span class="text-xs text-slate-400 font-medium">(${mItems.length})</span></p>
+        </div>
+        ${rows}
+      </div>`;
+    }).join('');
+  }
+}
+
+function browseDrillCat(cat) {
+  browseCat = cat;
+  browseLevel = 'brands';
+  renderBrowse();
+}
+function browseDrillBrand(brand) {
+  browseBrand = brand;
+  browseLevel = 'models';
+  renderBrowse();
+}
+
 // ── updateUI ─────────────────────────────────────────────────────
 function updateUI() {
   const ap = document.getElementById('adminPanel');
@@ -614,11 +783,17 @@ function addOrUpdate() {
   let count = 0;
   bulk.split('\n').forEach(line=>{
     if(!line.trim()) return;
-    let [rawN, price="N/A"] = line.split(',').map(s=>s.trim());
+    let [rawN, price=""] = line.split(',').map(s=>s.trim());
     const dName = toTitleCase(rawN);
+    const hasPrice = price && price !== '' && price.toUpperCase() !== 'N/A';
     const existing = data.find(i=>i.brand===brand&&i.cat===cat&&i.name.toLowerCase()===rawN.toLowerCase());
-    if(existing){ existing.price=price; existing.name=dName; existing.color=bulkColor; }
-    else { data.push({id:Date.now()+Math.random(),name:dName,price,cat,brand,inStock:true,color:bulkColor}); }
+    if(existing){
+      existing.name=dName;
+      existing.inStock=true;
+      if(hasPrice){ existing.price=price; existing.color=bulkColor; }
+    } else {
+      data.push({id:Date.now()+Math.random(),name:dName,price:hasPrice?price:'N/A',cat,brand,inStock:true,color:bulkColor});
+    }
     count++;
   });
   document.getElementById('bulkInput').value='';
@@ -684,7 +859,13 @@ function toggleStock(id) {
   if(isAdmin) { const i=data.find(x=>x.id==id); if(i){ i.inStock=!i.inStock; save(); } }
 }
 function toggleModel(key) {
-  if(expandedModels.has(key)) expandedModels.delete(key); else expandedModels.add(key); render();
+  if(expandedModels.has(key)) {
+    expandedModels.clear();
+  } else {
+    expandedModels.clear();
+    expandedModels.add(key);
+  }
+  render();
 }
 function editPriceModal(id) {
   const item=data.find(x=>x.id==id); if(!item) return;
@@ -939,15 +1120,29 @@ function confirmExcelImport() {
     const rawCat=String(row[catCol]||'').trim();
     const rawBrand=String(row[brandCol]||'').trim().toUpperCase();
     const rawModel=String(row[modelCol]||'').trim();
-    const rawPrice=String(row[priceCol]||'').trim()||'N/A';
+    const rawPrice=String(row[priceCol]||'').trim();
     if(!rawBrand||!rawModel||!rawCat){ skipped++; return; }
+    const hasPrice = rawPrice && rawPrice !== '' && rawPrice.toUpperCase() !== 'N/A';
+
+    // Auto-add new brands/categories to lists
+    if(!BRANDS.includes(rawBrand)){ BRANDS.push(rawBrand); saveBrands(); }
+    if(!CATEGORIES.map(c=>c.toLowerCase()).includes(rawCat.toLowerCase())){ CATEGORIES.push(rawCat); saveCategories(); }
+
     const dName=toTitleCase(rawModel);
     const existing=data.find(i=>i.brand===rawBrand&&i.cat.toLowerCase()===rawCat.toLowerCase()&&i.name.toLowerCase()===rawModel.toLowerCase());
-    if(existing){ existing.price=rawPrice; existing.name=dName; existing.color='blue'; updated++; }
-    else{ data.push({id:Date.now()+Math.random(),name:dName,price:rawPrice,cat:rawCat,brand:rawBrand,inStock:true,color:'blue'}); added++; }
+    if(existing){
+      existing.name=dName;
+      existing.inStock=true;
+      if(hasPrice){ existing.price=rawPrice; existing.color='blue'; }
+      updated++;
+    } else {
+      data.push({id:Date.now()+Math.random(),name:dName,price:hasPrice?rawPrice:'N/A',cat:rawCat,brand:rawBrand,inStock:true,color:'blue'});
+      added++;
+    }
   });
 
   save();
+  populateSelects();
   closeExcelPreview();
   showToast(`✅ ${added} added, ${updated} updated${skipped?', '+skipped+' skipped':''}`, 3500);
 }
